@@ -8,7 +8,9 @@ describe('Energy breakdown dashboard', () => {
 
     expect(screen.getByRole('heading', { name: 'Energy Breakdown' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly energy usage')).toBeInTheDocument();
-    expect(screen.getAllByText(/Sun|Mon|Tue|Wed|Thu|Fri|Sat/)).toHaveLength(7);
+    for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
+      expect(screen.getByText(weekday, { selector: 'span' })).toBeInTheDocument();
+    }
   });
 
   it('switches to month view and shows a month label', async () => {
