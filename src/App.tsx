@@ -1,8 +1,7 @@
 import { useState } from 'react';
+import { BottomControlTray } from './components/BottomControlTray';
 import { EnergySummary } from './components/EnergySummary';
 import { MonthlyCalendar } from './components/MonthlyCalendar';
-import { PeriodNavigator } from './components/PeriodNavigator';
-import { ViewToggle } from './components/ViewToggle';
 import { WeeklyCalendar } from './components/WeeklyCalendar';
 import { MOCK_ENERGY_DAYS, MOCK_TODAY } from './data/mockEnergy';
 import type { EnergyCalendarView } from './types';
@@ -36,12 +35,9 @@ function App() {
         <div className="header-row">
           <div>
             <h1>Energy Breakdown</h1>
-            <p className="subtitle">Track usage patterns over time with a clean weekly and monthly calendar.</p>
+            <p className="subtitle">Check total usage fast, then move between weekly and monthly views with your thumb.</p>
           </div>
-          <ViewToggle value={view} onChange={setView} />
         </div>
-
-        <PeriodNavigator label={periodLabel} onPrevious={() => handleNavigate(-1)} onNext={() => handleNavigate(1)} />
 
         <EnergySummary summary={summary} />
 
@@ -50,6 +46,14 @@ function App() {
         ) : (
           <MonthlyCalendar days={monthDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
         )}
+
+        <BottomControlTray
+          label={periodLabel}
+          view={view}
+          onPrevious={() => handleNavigate(-1)}
+          onNext={() => handleNavigate(1)}
+          onChangeView={setView}
+        />
       </section>
     </main>
   );
