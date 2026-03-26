@@ -7,7 +7,7 @@ describe('Energy breakdown dashboard', () => {
   it('renders seven weekday headers in weekly view and keeps controls at the bottom', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Energy Breakdown' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Energy Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly energy usage')).toBeInTheDocument();
     for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
       expect(screen.getByText(weekday, { selector: 'span' })).toBeInTheDocument();
