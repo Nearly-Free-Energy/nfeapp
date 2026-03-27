@@ -11,6 +11,16 @@ npm install
 npm run dev
 ```
 
+For auth-enabled local development, add a `.env` file with:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+VITE_ALLOWED_EMAILS=you@example.com
+```
+
+`VITE_ALLOWED_EMAILS` is optional. When set, only the listed comma-separated email addresses can stay signed in. This is useful for the first production rollout while the portal still uses demo data after login.
+
 Useful commands:
 
 ```bash

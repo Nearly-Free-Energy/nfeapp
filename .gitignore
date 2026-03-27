@@ -6,3 +6,4 @@ vite.config.d.ts
 .vercel/
 playwright-report/
 test-results/
+.env

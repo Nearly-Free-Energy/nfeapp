@@ -48,6 +48,11 @@ button {
   backdrop-filter: blur(16px);
 }
 
+.dashboard-card--narrow {
+  width: min(560px, 100%);
+  padding-bottom: 28px;
+}
+
 .eyebrow {
   color: #4e7a96;
   font-size: 0.8rem;
@@ -75,6 +80,87 @@ h1 {
   max-width: 48rem;
   color: #5d7286;
   font-size: 1rem;
+}
+
+.auth-card {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #355166;
+}
+
+.auth-form__input {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid #c8d9e5;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 14px 16px;
+  font: inherit;
+  color: #17324d;
+}
+
+.auth-form__input:focus {
+  outline: 2px solid rgba(31, 108, 151, 0.18);
+  border-color: #1f6c97;
+}
+
+.auth-form__button,
+.ghost-button {
+  border: 0;
+  border-radius: 18px;
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.auth-form__button {
+  background: linear-gradient(180deg, #1f6c97, #184d72);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(23, 63, 92, 0.2);
+}
+
+.auth-form__button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ghost-button {
+  background: rgba(20, 72, 103, 0.08);
+  color: #184d72;
+}
+
+.auth-form__button:hover,
+.ghost-button:hover {
+  transform: translateY(-1px);
+}
+
+.status-banner {
+  border-radius: 18px;
+  padding: 14px 16px;
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
+.status-banner--info {
+  background: rgba(47, 123, 169, 0.12);
+  border: 1px solid rgba(47, 123, 169, 0.18);
+  color: #184d72;
+}
+
+.status-banner--error {
+  background: rgba(191, 73, 72, 0.1);
+  border: 1px solid rgba(191, 73, 72, 0.16);
+  color: #8d2625;
 }
 
 .summary {
