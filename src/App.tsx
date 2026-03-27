@@ -34,7 +34,7 @@ function App() {
         <div className="eyebrow">Customer energy portal</div>
         <div className="header-row">
           <div>
-            <h1>Energy Consumption</h1>
+            <h1>Electricity Consumption</h1>
             <p className="subtitle">Check total usage fast, then move between weekly and monthly views with your thumb.</p>
           </div>
         </div>
