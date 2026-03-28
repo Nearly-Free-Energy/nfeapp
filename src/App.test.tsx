@@ -3,6 +3,16 @@ import userEvent from '@testing-library/user-event';
 import App from './App';
 
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
+const apiMocks = vi.hoisted(() => ({
+  getMe: vi.fn(async () => ({
+    email: 'customer@example.com',
+    allowed: true as const,
+  })),
+}));
+
+vi.mock('./api', () => ({
+  getMe: apiMocks.getMe,
+}));
 
 vi.mock('./supabase', () => {
   const signInWithOtp = vi.fn(async () => ({ error: null }));
@@ -49,12 +59,18 @@ describe('Electricity consumption dashboard', () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
     authStateListeners.length = 0;
+    apiMocks.getMe.mockReset();
+    apiMocks.getMe.mockResolvedValue({
+      email: 'customer@example.com',
+      allowed: true,
+    });
   });
 
   it('renders the signed-in dashboard and keeps controls at the bottom', async () => {
     render(<App />);
 
     expect(await screen.findByText(/Signed in as customer@example.com/i)).toBeInTheDocument();
+    expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly energy usage')).toBeInTheDocument();
 
@@ -135,6 +151,15 @@ describe('Electricity consumption dashboard', () => {
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it('returns to the signed-out state when backend verification fails', async () => {
+    apiMocks.getMe.mockRejectedValueOnce(new Error('Unable to verify your session.'));
+
+    render(<App />);
+
+    expect(await screen.findByText('Unable to verify your session.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
   });
 
   it('blocks a user that is not in the configured allowlist', async () => {

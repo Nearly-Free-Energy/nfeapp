@@ -1,5 +1,7 @@
 import { Session } from '@supabase/supabase-js';
 import { FormEvent, useEffect, useState } from 'react';
+import { getMe } from './api';
+import { isEmailAllowed } from './auth';
 import { BottomControlTray } from './components/BottomControlTray';
 import { EnergySummary } from './components/EnergySummary';
 import { MonthlyCalendar } from './components/MonthlyCalendar';
@@ -12,26 +14,6 @@ import { buildEnergyLookup, getMonthDays, getWeekDays, summarizePeriod } from '.
 
 const INITIAL_ANCHOR_DATE = parseIsoDate('2026-03-22');
 
-function getAllowedEmails(): string[] {
-  return (import.meta.env.VITE_ALLOWED_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isEmailAllowed(email: string | undefined): boolean {
-  if (!email) {
-    return false;
-  }
-
-  const allowedEmails = getAllowedEmails();
-  if (allowedEmails.length === 0) {
-    return true;
-  }
-
-  return allowedEmails.includes(email.toLowerCase());
-}
-
 function App() {
   const [view, setView] = useState<EnergyCalendarView>('week');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
@@ -42,6 +24,8 @@ function App() {
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [isVerifyingSession, setIsVerifyingSession] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,6 +40,7 @@ function App() {
         setAuthError(error.message);
       } else {
         setSession(data.session);
+        setVerifiedEmail(null);
         if (data.session?.user.email) {
           setEmail(data.session.user.email);
         }
@@ -71,6 +56,7 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setIsAuthReady(true);
+      setVerifiedEmail(null);
 
       if (nextSession?.user.email) {
         setEmail(nextSession.user.email);
@@ -84,20 +70,65 @@ function App() {
   }, []);
 
   useEffect(() => {
-    async function enforceAllowlist() {
-      const sessionEmail = session?.user.email;
+    let isMounted = true;
+
+    async function verifySession() {
+      if (!session?.access_token) {
+        setVerifiedEmail(null);
+        setIsVerifyingSession(false);
+        return;
+      }
+
+      const sessionEmail = session.user.email;
       if (!sessionEmail || isEmailAllowed(sessionEmail)) {
+        setIsVerifyingSession(true);
+
+        try {
+          const profile = await getMe(session.access_token);
+          if (!isMounted) {
+            return;
+          }
+
+          setVerifiedEmail(profile.email);
+          setAuthError(null);
+        } catch (error) {
+          if (!isMounted) {
+            return;
+          }
+
+          setVerifiedEmail(null);
+          setAuthMessage(null);
+
+          const message = error instanceof Error ? error.message : 'Unable to verify your session.';
+          await supabase.auth.signOut();
+          setSession(null);
+          setAuthError(message);
+        } finally {
+          if (isMounted) {
+            setIsVerifyingSession(false);
+          }
+        }
+
         return;
       }
 
       await supabase.auth.signOut();
+      if (!isMounted) {
+        return;
+      }
+
       setSession(null);
+      setVerifiedEmail(null);
       setAuthMessage(null);
       setAuthError('This account is not enabled for portal access yet.');
       setSelectedDayKey(undefined);
     }
 
-    void enforceAllowlist();
+    void verifySession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [session]);
 
   const energyLookup = buildEnergyLookup(MOCK_ENERGY_DAYS);
@@ -107,7 +138,7 @@ function App() {
   const summary = summarizePeriod(visibleDays);
   const periodLabel =
     view === 'week' ? formatWeekRange(startOfWeek(anchorDate), endOfWeek(anchorDate)) : formatMonthYear(anchorDate);
-  const signedInEmail = session?.user.email ?? 'Signed in customer';
+  const signedInEmail = verifiedEmail ?? session?.user.email ?? 'Signed in customer';
 
   function handleNavigate(step: -1 | 1) {
     setSelectedDayKey(undefined);
@@ -139,6 +170,7 @@ function App() {
   async function handleSignOut() {
     await supabase.auth.signOut();
     setSession(null);
+    setVerifiedEmail(null);
     setSelectedDayKey(undefined);
     setAuthMessage(null);
     setAuthError(null);
@@ -199,6 +231,18 @@ function App() {
               </button>
             </form>
           </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (isVerifyingSession || !verifiedEmail) {
+    return (
+      <main className="app-shell">
+        <section className="dashboard-card dashboard-card--narrow">
+          <div className="eyebrow">Customer energy portal</div>
+          <h1>Electricity Consumption</h1>
+          <p className="subtitle">Verifying your secure session...</p>
         </section>
       </main>
     );
