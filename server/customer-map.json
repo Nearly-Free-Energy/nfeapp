@@ -6,5 +6,9 @@
   "customer@example.com": {
     "customerId": "customer-demo",
     "customerName": "Customer Demo Account"
+  },
+  "team@nearlyfreeenergy.com": {
+    "customerId": "nfe-team",
+    "customerName": "Nearly Free Energy Team"
   }
 }
