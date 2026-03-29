@@ -11,6 +11,27 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 describe('/api/me', () => {
+  function createResponseRecorder() {
+    let statusCode = 200;
+    let jsonBody: unknown;
+
+    const response = {
+      status(code: number) {
+        statusCode = code;
+        return response;
+      },
+      json(body: unknown) {
+        jsonBody = body;
+      },
+    };
+
+    return {
+      response,
+      getStatus: () => statusCode,
+      getBody: () => jsonBody,
+    };
+  }
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
@@ -19,11 +40,18 @@ describe('/api/me', () => {
 
   it('returns 401 without a bearer token', async () => {
     const { default: handler } = await import('../api/me');
+    const recorder = createResponseRecorder();
 
-    const response = await handler(new Request('http://localhost/api/me'));
+    await handler(
+      {
+        method: 'GET',
+        headers: {},
+      },
+      recorder.response,
+    );
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({
+    expect(recorder.getStatus()).toBe(401);
+    expect(recorder.getBody()).toMatchObject({
       error: 'Missing bearer token.',
     });
   });
@@ -35,16 +63,20 @@ describe('/api/me', () => {
     });
 
     const { default: handler } = await import('../api/me');
-    const response = await handler(
-      new Request('http://localhost/api/me', {
+    const recorder = createResponseRecorder();
+
+    await handler(
+      {
+        method: 'GET',
         headers: {
-          Authorization: 'Bearer bad-token',
+          authorization: 'Bearer bad-token',
         },
-      }),
+      },
+      recorder.response,
     );
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({
+    expect(recorder.getStatus()).toBe(401);
+    expect(recorder.getBody()).toMatchObject({
       error: 'Unable to verify the Supabase session.',
     });
   });
@@ -61,16 +93,20 @@ describe('/api/me', () => {
     });
 
     const { default: handler } = await import('../api/me');
-    const response = await handler(
-      new Request('http://localhost/api/me', {
+    const recorder = createResponseRecorder();
+
+    await handler(
+      {
+        method: 'GET',
         headers: {
-          Authorization: 'Bearer valid-token',
+          authorization: 'Bearer valid-token',
         },
-      }),
+      },
+      recorder.response,
     );
 
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({
+    expect(recorder.getStatus()).toBe(403);
+    expect(recorder.getBody()).toMatchObject({
       error: 'This account is not enabled for portal access yet.',
     });
   });
@@ -87,16 +123,20 @@ describe('/api/me', () => {
     });
 
     const { default: handler } = await import('../api/me');
-    const response = await handler(
-      new Request('http://localhost/api/me', {
+    const recorder = createResponseRecorder();
+
+    await handler(
+      {
+        method: 'GET',
         headers: {
-          Authorization: 'Bearer valid-token',
+          authorization: 'Bearer valid-token',
         },
-      }),
+      },
+      recorder.response,
     );
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
+    expect(recorder.getStatus()).toBe(200);
+    expect(recorder.getBody()).toEqual({
       email: 'customer@example.com',
       allowed: true,
     });

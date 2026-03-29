@@ -1,5 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
+type ApiRequest = {
+  method?: string;
+  headers: Record<string, string | string[] | undefined>;
+};
+
+type ApiResponse = {
+  status: (code: number) => ApiResponse;
+  json: (body: unknown) => void;
+};
+
 function getServerAllowedEmails(): string[] {
   return (process.env.VITE_ALLOWED_EMAILS || '')
     .split(',')
@@ -20,8 +30,10 @@ function isServerEmailAllowed(email: string | undefined): boolean {
   return allowedEmails.includes(email.toLowerCase());
 }
 
-function extractBearerToken(request: Request): string | null {
-  const header = request.headers.get('authorization');
+function extractBearerToken(request: ApiRequest): string | null {
+  const headerValue = request.headers.authorization;
+  const header = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+
   if (!header || !header.startsWith('Bearer ')) {
     return null;
   }
@@ -62,29 +74,33 @@ function createAuthVerifier() {
 
 const verifyAccessToken = createAuthVerifier();
 
-export default async function handler(request: Request): Promise<Response> {
+export default async function handler(request: ApiRequest, response: ApiResponse): Promise<void> {
   if (request.method !== 'GET') {
-    return Response.json({ error: 'Method not allowed.' }, { status: 405 });
+    response.status(405).json({ error: 'Method not allowed.' });
+    return;
   }
 
   const token = extractBearerToken(request);
   if (!token) {
-    return Response.json({ error: 'Missing bearer token.' }, { status: 401 });
+    response.status(401).json({ error: 'Missing bearer token.' });
+    return;
   }
 
   try {
     const user = await verifyAccessToken(token);
 
     if (!isServerEmailAllowed(user.email)) {
-      return Response.json({ error: 'This account is not enabled for portal access yet.' }, { status: 403 });
+      response.status(403).json({ error: 'This account is not enabled for portal access yet.' });
+      return;
     }
 
-    return Response.json({
+    response.status(200).json({
       email: user.email,
       allowed: true,
     });
+    return;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to verify your session.';
-    return Response.json({ error: message }, { status: 401 });
+    response.status(401).json({ error: message });
   }
 }
