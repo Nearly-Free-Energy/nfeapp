@@ -18,7 +18,7 @@ describe('/api/me', () => {
   });
 
   it('returns 401 without a bearer token', async () => {
-    const { default: handler } = await import('./me');
+    const { default: handler } = await import('../api/me');
 
     const response = await handler(new Request('http://localhost/api/me'));
 
@@ -34,7 +34,7 @@ describe('/api/me', () => {
       error: new Error('bad token'),
     });
 
-    const { default: handler } = await import('./me');
+    const { default: handler } = await import('../api/me');
     const response = await handler(
       new Request('http://localhost/api/me', {
         headers: {
@@ -60,7 +60,7 @@ describe('/api/me', () => {
       error: null,
     });
 
-    const { default: handler } = await import('./me');
+    const { default: handler } = await import('../api/me');
     const response = await handler(
       new Request('http://localhost/api/me', {
         headers: {
@@ -86,7 +86,7 @@ describe('/api/me', () => {
       error: null,
     });
 
-    const { default: handler } = await import('./me');
+    const { default: handler } = await import('../api/me');
     const response = await handler(
       new Request('http://localhost/api/me', {
         headers: {
