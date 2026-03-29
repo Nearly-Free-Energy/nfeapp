@@ -27,6 +27,8 @@ VITE_ALLOWED_EMAILS=you@example.com
 
 Step 2 adds a minimal protected identity endpoint at `/api/me`. The frontend now waits for backend verification before showing the signed-in dashboard.
 
+Step 3 adds server-side customer mapping on top of that verified identity flow. The current mapping lives in [server/customer-map.json](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/customer-map.json). During this transition phase, an email should still be present in `VITE_ALLOWED_EMAILS`, and it must also be mapped in the customer JSON file before the dashboard is shown.
+
 Useful commands:
 
 ```bash
@@ -60,6 +62,7 @@ Also note:
 
 - `.vercel/` is gitignored because it is local machine/project linkage metadata.
 - The app now uses a minimal Vercel Function at `/api/me` for server-side identity verification.
+- Customer identity is currently mapped server-side from [server/customer-map.json](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/customer-map.json).
 
 ### Required Vercel project settings
 

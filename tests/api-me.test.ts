@@ -111,6 +111,36 @@ describe('/api/me', () => {
     });
   });
 
+  it('returns 403 for an allowlisted user without a customer mapping', async () => {
+    vi.stubEnv('VITE_ALLOWED_EMAILS', 'missing@example.com');
+    mockGetUser.mockResolvedValueOnce({
+      data: {
+        user: {
+          email: 'missing@example.com',
+        },
+      },
+      error: null,
+    });
+
+    const { default: handler } = await import('../api/me');
+    const recorder = createResponseRecorder();
+
+    await handler(
+      {
+        method: 'GET',
+        headers: {
+          authorization: 'Bearer valid-token',
+        },
+      },
+      recorder.response,
+    );
+
+    expect(recorder.getStatus()).toBe(403);
+    expect(recorder.getBody()).toMatchObject({
+      error: 'Your account is signed in, but it is not linked to a customer profile yet.',
+    });
+  });
+
   it('returns 200 with email for a valid allowed user', async () => {
     vi.stubEnv('VITE_ALLOWED_EMAILS', 'customer@example.com');
     mockGetUser.mockResolvedValueOnce({
@@ -139,6 +169,8 @@ describe('/api/me', () => {
     expect(recorder.getBody()).toEqual({
       email: 'customer@example.com',
       allowed: true,
+      customerId: 'customer-demo',
+      customerName: 'Customer Demo Account',
     });
   });
 });

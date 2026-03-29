@@ -25,6 +25,7 @@ function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(null);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ function App() {
       } else {
         setSession(data.session);
         setVerifiedEmail(null);
+        setCustomerName(null);
         if (data.session?.user.email) {
           setEmail(data.session.user.email);
         }
@@ -57,6 +59,7 @@ function App() {
       setSession(nextSession);
       setIsAuthReady(true);
       setVerifiedEmail(null);
+      setCustomerName(null);
 
       if (nextSession?.user.email) {
         setEmail(nextSession.user.email);
@@ -75,6 +78,7 @@ function App() {
     async function verifySession() {
       if (!session?.access_token) {
         setVerifiedEmail(null);
+        setCustomerName(null);
         setIsVerifyingSession(false);
         return;
       }
@@ -90,6 +94,7 @@ function App() {
           }
 
           setVerifiedEmail(profile.email);
+          setCustomerName(profile.customerName);
           setAuthError(null);
         } catch (error) {
           if (!isMounted) {
@@ -97,6 +102,7 @@ function App() {
           }
 
           setVerifiedEmail(null);
+          setCustomerName(null);
           setAuthMessage(null);
 
           const message = error instanceof Error ? error.message : 'Unable to verify your session.';
@@ -119,6 +125,7 @@ function App() {
 
       setSession(null);
       setVerifiedEmail(null);
+      setCustomerName(null);
       setAuthMessage(null);
       setAuthError('This account is not enabled for portal access yet.');
       setSelectedDayKey(undefined);
@@ -171,6 +178,7 @@ function App() {
     await supabase.auth.signOut();
     setSession(null);
     setVerifiedEmail(null);
+    setCustomerName(null);
     setSelectedDayKey(undefined);
     setAuthMessage(null);
     setAuthError(null);
@@ -256,7 +264,8 @@ function App() {
           <div>
             <h1>Electricity Consumption</h1>
             <p className="subtitle">
-              Signed in as {signedInEmail}. Demo data is still shown while real customer integrations are being wired in.
+              Signed in as {signedInEmail} for {customerName ?? 'your customer account'}. Demo data is still shown while
+              real customer integrations are being wired in.
             </p>
           </div>
           <button type="button" className="ghost-button" onClick={() => void handleSignOut()}>

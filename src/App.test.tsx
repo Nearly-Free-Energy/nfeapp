@@ -7,6 +7,8 @@ const apiMocks = vi.hoisted(() => ({
   getMe: vi.fn(async () => ({
     email: 'customer@example.com',
     allowed: true as const,
+    customerId: 'customer-demo',
+    customerName: 'Customer Demo Account',
   })),
 }));
 
@@ -63,13 +65,15 @@ describe('Electricity consumption dashboard', () => {
     apiMocks.getMe.mockResolvedValue({
       email: 'customer@example.com',
       allowed: true,
+      customerId: 'customer-demo',
+      customerName: 'Customer Demo Account',
     });
   });
 
   it('renders the signed-in dashboard and keeps controls at the bottom', async () => {
     render(<App />);
 
-    expect(await screen.findByText(/Signed in as customer@example.com/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly energy usage')).toBeInTheDocument();
@@ -159,6 +163,19 @@ describe('Electricity consumption dashboard', () => {
     render(<App />);
 
     expect(await screen.findByText('Unable to verify your session.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
+  });
+
+  it('shows the unmapped-user message when the backend rejects a signed-in user without a customer profile', async () => {
+    apiMocks.getMe.mockRejectedValueOnce(
+      new Error('Your account is signed in, but it is not linked to a customer profile yet.'),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByText('Your account is signed in, but it is not linked to a customer profile yet.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
   });
 

@@ -1,0 +1,10 @@
+{
+  "aaron.tushabe@nearlyfreeenergy.com": {
+    "customerId": "nfe-demo",
+    "customerName": "Nearly Free Energy Demo"
+  },
+  "customer@example.com": {
+    "customerId": "customer-demo",
+    "customerName": "Customer Demo Account"
+  }
+}

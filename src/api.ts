@@ -1,6 +1,8 @@
 export type MeApiResponse = {
   email: string;
   allowed: true;
+  customerId: string;
+  customerName: string;
 };
 
 export async function getMe(accessToken: string): Promise<MeApiResponse> {

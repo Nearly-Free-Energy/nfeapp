@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import customerMap from '../server/customer-map.json';
 
 type ApiRequest = {
   method?: string;
@@ -8,6 +9,11 @@ type ApiRequest = {
 type ApiResponse = {
   status: (code: number) => ApiResponse;
   json: (body: unknown) => void;
+};
+
+type CustomerRecord = {
+  customerId: string;
+  customerName: string;
 };
 
 function getServerAllowedEmails(): string[] {
@@ -39,6 +45,11 @@ function extractBearerToken(request: ApiRequest): string | null {
   }
 
   return header.slice('Bearer '.length);
+}
+
+function getCustomerRecord(email: string): CustomerRecord | null {
+  const record = (customerMap as Record<string, CustomerRecord | undefined>)[email.toLowerCase()];
+  return record ?? null;
 }
 
 function createAuthVerifier() {
@@ -94,9 +105,17 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return;
     }
 
+    const customer = getCustomerRecord(user.email);
+    if (!customer) {
+      response.status(403).json({ error: 'Your account is signed in, but it is not linked to a customer profile yet.' });
+      return;
+    }
+
     response.status(200).json({
       email: user.email,
       allowed: true,
+      customerId: customer.customerId,
+      customerName: customer.customerName,
     });
     return;
   } catch (error) {
