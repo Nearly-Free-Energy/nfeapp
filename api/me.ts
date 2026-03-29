@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import customerMap from '../server/customer-map.json';
+import { customerMap, type CustomerRecord } from '../server/customer-map.js';
 
 type ApiRequest = {
   method?: string;
@@ -9,11 +9,6 @@ type ApiRequest = {
 type ApiResponse = {
   status: (code: number) => ApiResponse;
   json: (body: unknown) => void;
-};
-
-type CustomerRecord = {
-  customerId: string;
-  customerName: string;
 };
 
 function getServerAllowedEmails(): string[] {
@@ -48,7 +43,7 @@ function extractBearerToken(request: ApiRequest): string | null {
 }
 
 function getCustomerRecord(email: string): CustomerRecord | null {
-  const record = (customerMap as Record<string, CustomerRecord | undefined>)[email.toLowerCase()];
+  const record = customerMap[email.toLowerCase()];
   return record ?? null;
 }
 
