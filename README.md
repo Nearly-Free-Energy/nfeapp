@@ -36,6 +36,8 @@ npm run release:check
 
 `npm run release:check` is the required local gate before merging work to `main`. It runs the full test suite and a production build.
 
+For custom Supabase email delivery setup, use [docs/supabase-smtp-runbook.md](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/docs/supabase-smtp-runbook.md).
+
 ## Vercel deployment
 
 This repository is set up for a trunk-based Vercel workflow:
