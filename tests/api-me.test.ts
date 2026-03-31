@@ -81,42 +81,11 @@ describe('/api/me', () => {
     });
   });
 
-  it('returns 403 for an authenticated user outside the allowlist', async () => {
-    vi.stubEnv('VITE_ALLOWED_EMAILS', 'allowed@example.com');
+  it('returns 403 for an authenticated user without a customer mapping', async () => {
     mockGetUser.mockResolvedValueOnce({
       data: {
         user: {
           email: 'blocked@example.com',
-        },
-      },
-      error: null,
-    });
-
-    const { default: handler } = await import('../api/me');
-    const recorder = createResponseRecorder();
-
-    await handler(
-      {
-        method: 'GET',
-        headers: {
-          authorization: 'Bearer valid-token',
-        },
-      },
-      recorder.response,
-    );
-
-    expect(recorder.getStatus()).toBe(403);
-    expect(recorder.getBody()).toMatchObject({
-      error: 'This account is not enabled for portal access yet.',
-    });
-  });
-
-  it('returns 403 for an allowlisted user without a customer mapping', async () => {
-    vi.stubEnv('VITE_ALLOWED_EMAILS', 'missing@example.com');
-    mockGetUser.mockResolvedValueOnce({
-      data: {
-        user: {
-          email: 'missing@example.com',
         },
       },
       error: null,
@@ -142,7 +111,6 @@ describe('/api/me', () => {
   });
 
   it('returns 200 with email for a valid allowed user', async () => {
-    vi.stubEnv('VITE_ALLOWED_EMAILS', 'customer@example.com');
     mockGetUser.mockResolvedValueOnce({
       data: {
         user: {

@@ -11,26 +11,6 @@ type ApiResponse = {
   json: (body: unknown) => void;
 };
 
-function getServerAllowedEmails(): string[] {
-  return (process.env.VITE_ALLOWED_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isServerEmailAllowed(email: string | undefined): boolean {
-  if (!email) {
-    return false;
-  }
-
-  const allowedEmails = getServerAllowedEmails();
-  if (allowedEmails.length === 0) {
-    return true;
-  }
-
-  return allowedEmails.includes(email.toLowerCase());
-}
-
 function extractBearerToken(request: ApiRequest): string | null {
   const headerValue = request.headers.authorization;
   const header = Array.isArray(headerValue) ? headerValue[0] : headerValue;
@@ -94,11 +74,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   try {
     const user = await verifyAccessToken(token);
-
-    if (!isServerEmailAllowed(user.email)) {
-      response.status(403).json({ error: 'This account is not enabled for portal access yet.' });
-      return;
-    }
 
     const customer = getCustomerRecord(user.email);
     if (!customer) {

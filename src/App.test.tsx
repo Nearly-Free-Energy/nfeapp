@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 
@@ -53,13 +53,8 @@ vi.mock('./supabase', () => {
 });
 
 describe('Electricity consumption dashboard', () => {
-  beforeEach(() => {
-    vi.stubEnv('VITE_ALLOWED_EMAILS', '');
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
     authStateListeners.length = 0;
     apiMocks.getMe.mockReset();
     apiMocks.getMe.mockResolvedValue({
@@ -177,33 +172,5 @@ describe('Electricity consumption dashboard', () => {
       await screen.findByText('Your account is signed in, but it is not linked to a customer profile yet.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
-  });
-
-  it('blocks a user that is not in the configured allowlist', async () => {
-    vi.stubEnv('VITE_ALLOWED_EMAILS', 'allowed@example.com');
-    vi.resetModules();
-
-    const { supabase } = await import('./supabase');
-    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-      data: {
-        session: {
-          access_token: 'test-token',
-          user: {
-            email: 'not-allowed@example.com',
-          },
-        },
-      },
-      error: null,
-    } as never);
-
-    const { default: ReloadedApp } = await import('./App');
-    render(<ReloadedApp />);
-
-    await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
-    });
-    expect(await screen.findByText('This account is not enabled for portal access yet.')).toBeInTheDocument();
-
-    vi.resetModules();
   });
 });

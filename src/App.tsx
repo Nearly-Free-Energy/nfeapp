@@ -1,7 +1,6 @@
 import { Session } from '@supabase/supabase-js';
 import { FormEvent, useEffect, useState } from 'react';
 import { getMe } from './api';
-import { isEmailAllowed } from './auth';
 import { BottomControlTray } from './components/BottomControlTray';
 import { EnergySummary } from './components/EnergySummary';
 import { MonthlyCalendar } from './components/MonthlyCalendar';
@@ -84,51 +83,42 @@ function App() {
       }
 
       const sessionEmail = session.user.email;
-      if (!sessionEmail || isEmailAllowed(sessionEmail)) {
-        setIsVerifyingSession(true);
+      if (!sessionEmail) {
+        setVerifiedEmail(null);
+        setCustomerName(null);
+        setIsVerifyingSession(false);
+        return;
+      }
 
-        try {
-          const profile = await getMe(session.access_token);
-          if (!isMounted) {
-            return;
-          }
+      setIsVerifyingSession(true);
 
-          setVerifiedEmail(profile.email);
-          setCustomerName(profile.customerName);
-          setAuthError(null);
-        } catch (error) {
-          if (!isMounted) {
-            return;
-          }
-
-          setVerifiedEmail(null);
-          setCustomerName(null);
-          setAuthMessage(null);
-
-          const message = error instanceof Error ? error.message : 'Unable to verify your session.';
-          await supabase.auth.signOut();
-          setSession(null);
-          setAuthError(message);
-        } finally {
-          if (isMounted) {
-            setIsVerifyingSession(false);
-          }
+      try {
+        const profile = await getMe(session.access_token);
+        if (!isMounted) {
+          return;
         }
 
-        return;
-      }
+        setVerifiedEmail(profile.email);
+        setCustomerName(profile.customerName);
+        setAuthError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
 
-      await supabase.auth.signOut();
-      if (!isMounted) {
-        return;
-      }
+        setVerifiedEmail(null);
+        setCustomerName(null);
+        setAuthMessage(null);
 
-      setSession(null);
-      setVerifiedEmail(null);
-      setCustomerName(null);
-      setAuthMessage(null);
-      setAuthError('This account is not enabled for portal access yet.');
-      setSelectedDayKey(undefined);
+        const message = error instanceof Error ? error.message : 'Unable to verify your session.';
+        await supabase.auth.signOut();
+        setSession(null);
+        setAuthError(message);
+      } finally {
+        if (isMounted) {
+          setIsVerifyingSession(false);
+        }
+      }
     }
 
     void verifySession();
