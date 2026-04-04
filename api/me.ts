@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { fetchAuthorizedCustomer } from '../server/customer-data.js';
+import { fetchAuthorizedCustomer } from '../server/customer-data.ts';
 
 type ApiRequest = {
   method?: string;
