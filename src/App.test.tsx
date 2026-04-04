@@ -119,8 +119,11 @@ describe('Electricity consumption dashboard', () => {
     expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
     expect(screen.getByRole('link', { name: 'Account' })).toBeInTheDocument();
 
+    const weekdayRow = screen.getByLabelText('Weekly utility usage').querySelector('.weekday-row--week');
+    expect(weekdayRow).not.toBeNull();
+
     for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
-      expect(screen.getByText(weekday, { selector: 'span' })).toBeInTheDocument();
+      expect(within(weekdayRow as HTMLElement).getByText(weekday, { selector: 'span' })).toBeInTheDocument();
     }
 
     const controls = screen.getByLabelText('Bottom calendar controls');

@@ -22,15 +22,21 @@ export function DayCell({ day, comparisonValues, variant, selected = false, onSe
     .filter(Boolean)
     .join(' ');
 
-  const label = new Intl.DateTimeFormat('en-US', {
-    weekday: variant === 'week' ? 'short' : undefined,
-    month: variant === 'week' ? 'short' : undefined,
+  const fullDateLabel = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   }).format(day.date);
 
   return (
-    <button type="button" className={classes} onClick={() => onSelect?.(day.key)} aria-pressed={selected}>
-      <span className="day-cell__date">{variant === 'week' ? label : day.date.getDate()}</span>
+    <button
+      type="button"
+      className={classes}
+      onClick={() => onSelect?.(day.key)}
+      aria-pressed={selected}
+      aria-label={`${fullDateLabel}, ${formatUsageValue(day.usageValue)} ${day.unit}`}
+    >
+      <span className="day-cell__date">{day.date.getDate()}</span>
       <span className="day-cell__usage">{formatUsageValue(day.usageValue)}</span>
       <span className="day-cell__unit">{day.unit}</span>
     </button>

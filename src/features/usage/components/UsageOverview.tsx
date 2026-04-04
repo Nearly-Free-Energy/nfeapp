@@ -4,7 +4,8 @@ import { UsageSummary } from '../../../components/UsageSummary';
 import { MonthlyCalendar } from '../../../components/MonthlyCalendar';
 import { WeeklyCalendar } from '../../../components/WeeklyCalendar';
 import { MOCK_TODAY, MOCK_USAGE_POINTS } from '../../../data/mockUsage';
-import type { UsageCalendarView } from '../../../models/usage';
+import type { UsageCalendarDay, UsageCalendarView } from '../../../models/usage';
+import { SelectedUsagePanel } from './SelectedUsagePanel';
 import { addDays, addMonths, endOfWeek, formatMonthYear, formatWeekRange, parseIsoDate, startOfWeek } from '../../../utils/date';
 import { buildUsageLookup, getMonthDays, getWeekDays, summarizePeriod } from '../../../utils/usage';
 
@@ -21,6 +22,7 @@ export function UsageOverview() {
   const monthDays = getMonthDays(anchorDate, usageLookup, MOCK_TODAY, fallbackUnit);
   const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
   const summary = summarizePeriod(visibleDays);
+  const selectedDay = visibleDays.find((day) => day.key === selectedDayKey) ?? findDefaultSelectedDay(visibleDays, anchorDate);
   const periodLabel =
     view === 'week' ? formatWeekRange(startOfWeek(anchorDate), endOfWeek(anchorDate)) : formatMonthYear(anchorDate);
 
@@ -39,6 +41,8 @@ export function UsageOverview() {
         <MonthlyCalendar days={monthDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
       )}
 
+      <SelectedUsagePanel day={selectedDay} />
+
       <BottomControlTray
         label={periodLabel}
         view={view}
@@ -48,4 +52,18 @@ export function UsageOverview() {
       />
     </>
   );
+}
+
+function findDefaultSelectedDay(days: UsageCalendarDay[], anchorDate: Date) {
+  const currentMonthDay = days.find((day) => day.date.getDate() === anchorDate.getDate() && !day.isFuture);
+  if (currentMonthDay) {
+    return currentMonthDay;
+  }
+
+  const firstMeasuredDay = days.find((day) => day.usageValue !== null && !day.isFuture);
+  if (firstMeasuredDay) {
+    return firstMeasuredDay;
+  }
+
+  return days[0];
 }
