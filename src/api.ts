@@ -1,9 +1,4 @@
-export type MeApiResponse = {
-  email: string;
-  allowed: true;
-  customerId: string;
-  customerName: string;
-};
+import type { MeApiResponse } from './models/customer';
 
 export async function getMe(accessToken: string): Promise<MeApiResponse> {
   const response = await fetch('/api/me', {

@@ -85,5 +85,5 @@ Use the current staged Vercel deployment for validation.
 
 - Supabase project URL/key configuration remains unchanged.
 - Vercel environment variables remain unchanged.
-- Customer authorization remains based on [server/customer-map.ts](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/customer-map.ts).
+- Customer authorization now depends on the Supabase-backed customer/account/service records described in [README.md](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/README.md).
 - SMTP setup is operational only; it does not require frontend or backend code changes in this repo.

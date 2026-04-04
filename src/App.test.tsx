@@ -1,14 +1,32 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+import type { MeApiResponse } from './models/customer';
 
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 const apiMocks = vi.hoisted(() => ({
-  getMe: vi.fn(async () => ({
+  getMe: vi.fn(async (): Promise<MeApiResponse> => ({
     email: 'customer@example.com',
-    allowed: true as const,
-    customerId: 'customer-demo',
-    customerName: 'Customer Demo Account',
+    profile: {
+      id: 'profile-demo',
+      displayName: 'Customer Demo Profile',
+      status: 'active',
+    },
+    account: {
+      id: 'account-demo',
+      accountNumber: 'customer-demo',
+      displayName: 'Customer Demo Account',
+      status: 'active',
+    },
+    services: [
+      {
+        id: 'service-demo',
+        serviceType: 'electric',
+        serviceName: 'Customer Demo Account Electric Service',
+        serviceAddress: null,
+        status: 'active',
+      },
+    ],
   })),
 }));
 
@@ -59,9 +77,26 @@ describe('Electricity consumption dashboard', () => {
     apiMocks.getMe.mockReset();
     apiMocks.getMe.mockResolvedValue({
       email: 'customer@example.com',
-      allowed: true,
-      customerId: 'customer-demo',
-      customerName: 'Customer Demo Account',
+      profile: {
+        id: 'profile-demo',
+        displayName: 'Customer Demo Profile',
+        status: 'active',
+      },
+      account: {
+        id: 'account-demo',
+        accountNumber: 'customer-demo',
+        displayName: 'Customer Demo Account',
+        status: 'active',
+      },
+      services: [
+        {
+          id: 'service-demo',
+          serviceType: 'electric',
+          serviceName: 'Customer Demo Account Electric Service',
+          serviceAddress: null,
+          status: 'active',
+        },
+      ],
     });
   });
 

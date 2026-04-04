@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { customerMap, type CustomerRecord } from '../server/customer-map.js';
+import { fetchAuthorizedCustomer } from '../server/customer-data.js';
 
 type ApiRequest = {
   method?: string;
@@ -22,22 +22,18 @@ function extractBearerToken(request: ApiRequest): string | null {
   return header.slice('Bearer '.length);
 }
 
-function getCustomerRecord(email: string): CustomerRecord | null {
-  const record = customerMap[email.toLowerCase()];
-  return record ?? null;
-}
-
 function createAuthVerifier() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+  const supabaseServerKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseServerKey) {
     return async () => {
       throw new Error('Supabase auth is not configured.');
     };
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createClient(supabaseUrl, supabaseServerKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -75,18 +71,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   try {
     const user = await verifyAccessToken(token);
 
-    const customer = getCustomerRecord(user.email);
+    const customer = await fetchAuthorizedCustomer(user.email);
     if (!customer) {
       response.status(403).json({ error: 'Your account is signed in, but it is not linked to a customer profile yet.' });
       return;
     }
 
-    response.status(200).json({
-      email: user.email,
-      allowed: true,
-      customerId: customer.customerId,
-      customerName: customer.customerName,
-    });
+    response.status(200).json(customer);
     return;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to verify your session.';

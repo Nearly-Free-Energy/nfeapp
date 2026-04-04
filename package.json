@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "release:check": "npm test && npm run build"
+    "release:check": "npm test && npm run build",
+    "db:migrate:customers": "node scripts/migrate-customer-map.ts",
+    "db:onboard:customer": "node scripts/onboard-customer.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",

@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetUser = vi.fn();
+const mockFrom = vi.fn();
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     auth: {
       getUser: mockGetUser,
     },
+    from: mockFrom,
   }),
 }));
 
@@ -36,7 +38,19 @@ describe('/api/me', () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
     mockGetUser.mockReset();
+    mockFrom.mockReset();
   });
+
+  function createQueryChain(result: { data: unknown; error: Error | null }) {
+    return {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(async () => result),
+      returns: vi.fn(async () => result),
+    };
+  }
 
   it('returns 401 without a bearer token', async () => {
     const { default: handler } = await import('../api/me');
@@ -90,6 +104,7 @@ describe('/api/me', () => {
       },
       error: null,
     });
+    mockFrom.mockReturnValueOnce(createQueryChain({ data: null, error: null }));
 
     const { default: handler } = await import('../api/me');
     const recorder = createResponseRecorder();
@@ -119,6 +134,53 @@ describe('/api/me', () => {
       },
       error: null,
     });
+    mockFrom
+      .mockReturnValueOnce(
+        createQueryChain({
+          data: {
+            id: 'profile-demo',
+            email: 'customer@example.com',
+            display_name: 'Customer Demo Profile',
+            status: 'active',
+          },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        createQueryChain({
+          data: {
+            id: 'account-demo',
+            customer_profile_id: 'profile-demo',
+            account_number: 'customer-demo',
+            display_name: 'Customer Demo Account',
+            status: 'active',
+          },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        createQueryChain({
+          data: [
+            {
+              id: 'service-electric',
+              utility_account_id: 'account-demo',
+              service_type: 'electric',
+              service_name: 'Customer Demo Account Electric Service',
+              service_address: null,
+              status: 'active',
+            },
+            {
+              id: 'service-water',
+              utility_account_id: 'account-demo',
+              service_type: 'water',
+              service_name: 'Customer Demo Account Water Service',
+              service_address: '123 Main St',
+              status: 'active',
+            },
+          ],
+          error: null,
+        }),
+      );
 
     const { default: handler } = await import('../api/me');
     const recorder = createResponseRecorder();
@@ -136,9 +198,33 @@ describe('/api/me', () => {
     expect(recorder.getStatus()).toBe(200);
     expect(recorder.getBody()).toEqual({
       email: 'customer@example.com',
-      allowed: true,
-      customerId: 'customer-demo',
-      customerName: 'Customer Demo Account',
+      profile: {
+        id: 'profile-demo',
+        displayName: 'Customer Demo Profile',
+        status: 'active',
+      },
+      account: {
+        id: 'account-demo',
+        accountNumber: 'customer-demo',
+        displayName: 'Customer Demo Account',
+        status: 'active',
+      },
+      services: [
+        {
+          id: 'service-electric',
+          serviceType: 'electric',
+          serviceName: 'Customer Demo Account Electric Service',
+          serviceAddress: null,
+          status: 'active',
+        },
+        {
+          id: 'service-water',
+          serviceType: 'water',
+          serviceName: 'Customer Demo Account Water Service',
+          serviceAddress: '123 Main St',
+          status: 'active',
+        },
+      ],
     });
   });
 });

@@ -18,13 +18,15 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 `SUPABASE_URL` and `SUPABASE_ANON_KEY` are used by the Vercel Function backend for server-side token verification. For now, they should match the same Supabase project as the frontend values.
+`SUPABASE_SERVICE_ROLE_KEY` is recommended for server-side account/profile/service access and for the onboarding scripts.
 
 Step 2 adds a minimal protected identity endpoint at `/api/me`. The frontend now waits for backend verification before showing the signed-in dashboard.
 
-Step 3 adds server-side customer mapping on top of that verified identity flow. The current mapping lives in [server/customer-map.ts](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/customer-map.ts). A signed-in user must be present in that customer map before the dashboard is shown.
+Step 3 adds server-side customer/account/service lookup on top of that verified identity flow. A signed-in user must be present in the Supabase customer data tables before the dashboard is shown.
 
 Useful commands:
 
@@ -32,11 +34,69 @@ Useful commands:
 npm test
 npm run build
 npm run release:check
+npm run db:migrate:customers
+npm run db:onboard:customer -- --email person@example.com --profile-name "Person Example" --account-number acct-1001 --account-name "Person Example Account" --services '[{"serviceType":"electric","serviceName":"Main Electric Service","serviceAddress":"123 Main St"}]'
 ```
 
 `npm run release:check` is the required local gate before merging work to `main`. It runs the full test suite and a production build.
 
 For custom Supabase email delivery setup, use [docs/supabase-smtp-runbook.md](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/docs/supabase-smtp-runbook.md).
+
+## Customer data model
+
+Apply the schema in [supabase/schema.sql](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/supabase/schema.sql) in Supabase before running the onboarding or migration scripts.
+
+The app now expects:
+
+- `customer_profiles`
+- `utility_accounts`
+- `utility_services`
+
+The `/api/me` response now returns:
+
+- `email`
+- `profile`
+- `account`
+- `services`
+
+## Customer migration and onboarding
+
+### One-time migration from the repo-backed map
+
+1. Apply [supabase/schema.sql](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/supabase/schema.sql) in Supabase SQL Editor.
+2. Ensure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set locally.
+3. Run:
+
+```bash
+npm run db:migrate:customers
+```
+
+This imports the current records from [server/legacy-customer-map.ts](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/legacy-customer-map.ts) and creates:
+
+- one customer profile per email
+- one account per profile
+- one default electric service per account
+
+The migration is idempotent and safe to rerun.
+
+### Onboarding a new user
+
+1. Invite the user or let them sign in through Supabase Auth.
+2. Run the onboarding command with their email and account/service data.
+3. After the profile/account/services exist, the user can access the dashboard.
+
+Example:
+
+```bash
+npm run db:onboard:customer -- \
+  --email jane@example.com \
+  --profile-name "Jane Example" \
+  --account-number acct-2001 \
+  --account-name "Jane Example Main Account" \
+  --services '[{"serviceType":"electric","serviceName":"Main Electric Service","serviceAddress":"123 Main St"},{"serviceType":"water","serviceName":"Main Water Service","serviceAddress":"123 Main St"}]'
+```
+
+Add `--append-services` if you want to keep existing services for that account and add new ones instead of replacing them.
 
 ## Vercel deployment
 
@@ -61,7 +121,7 @@ Also note:
 
 - `.vercel/` is gitignored because it is local machine/project linkage metadata.
 - The app now uses a minimal Vercel Function at `/api/me` for server-side identity verification.
-- Customer identity is currently mapped server-side from [server/customer-map.ts](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/customer-map.ts).
+- Customer identity is now mapped server-side from Supabase Postgres customer/account/service tables.
 
 ### Required Vercel project settings
 
@@ -98,6 +158,7 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 ## Release policy

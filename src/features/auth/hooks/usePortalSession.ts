@@ -1,6 +1,7 @@
 import { Session } from '@supabase/supabase-js';
 import { FormEvent, useEffect, useState } from 'react';
 import { getMe } from '../../../api';
+import type { CustomerProfile, UtilityAccount, UtilityService } from '../../../models/customer';
 import { supabase } from '../../../supabase';
 
 export type PortalSessionState =
@@ -28,7 +29,9 @@ export type PortalSessionState =
   | {
       status: 'signedIn';
       email: string;
-      customerName: string | null;
+      profile: CustomerProfile;
+      account: UtilityAccount;
+      services: UtilityService[];
       session: Session;
       authError: string | null;
       authMessage: string | null;
@@ -50,7 +53,9 @@ export function usePortalSession(): UsePortalSessionResult {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
-  const [customerName, setCustomerName] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [account, setAccount] = useState<UtilityAccount | null>(null);
+  const [services, setServices] = useState<UtilityService[]>([]);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
 
   useEffect(() => {
@@ -67,7 +72,9 @@ export function usePortalSession(): UsePortalSessionResult {
       } else {
         setSession(data.session);
         setVerifiedEmail(null);
-        setCustomerName(null);
+        setProfile(null);
+        setAccount(null);
+        setServices([]);
         if (data.session?.user.email) {
           setEmail(data.session.user.email);
         }
@@ -84,7 +91,9 @@ export function usePortalSession(): UsePortalSessionResult {
       setSession(nextSession);
       setIsAuthReady(true);
       setVerifiedEmail(null);
-      setCustomerName(null);
+      setProfile(null);
+      setAccount(null);
+      setServices([]);
 
       if (nextSession?.user.email) {
         setEmail(nextSession.user.email);
@@ -103,7 +112,9 @@ export function usePortalSession(): UsePortalSessionResult {
     async function verifySession() {
       if (!session?.access_token || !session.user.email) {
         setVerifiedEmail(null);
-        setCustomerName(null);
+        setProfile(null);
+        setAccount(null);
+        setServices([]);
         setIsVerifyingSession(false);
         return;
       }
@@ -117,7 +128,9 @@ export function usePortalSession(): UsePortalSessionResult {
         }
 
         setVerifiedEmail(profile.email);
-        setCustomerName(profile.customerName);
+        setProfile(profile.profile);
+        setAccount(profile.account);
+        setServices(profile.services);
         setAuthError(null);
       } catch (error) {
         if (!isMounted) {
@@ -125,7 +138,9 @@ export function usePortalSession(): UsePortalSessionResult {
         }
 
         setVerifiedEmail(null);
-        setCustomerName(null);
+        setProfile(null);
+        setAccount(null);
+        setServices([]);
         setAuthMessage(null);
 
         const message = error instanceof Error ? error.message : 'Unable to verify your session.';
@@ -172,7 +187,9 @@ export function usePortalSession(): UsePortalSessionResult {
     await supabase.auth.signOut();
     setSession(null);
     setVerifiedEmail(null);
-    setCustomerName(null);
+    setProfile(null);
+    setAccount(null);
+    setServices([]);
     setAuthMessage(null);
     setAuthError(null);
   }
@@ -222,11 +239,28 @@ export function usePortalSession(): UsePortalSessionResult {
     };
   }
 
+  if (!profile || !account) {
+    return {
+      state: {
+        status: 'verifying',
+        email,
+        authError,
+        authMessage,
+        isSendingLink,
+      },
+      handleEmailChange: setEmail,
+      handleSignIn,
+      handleSignOut,
+    };
+  }
+
   return {
     state: {
       status: 'signedIn',
       email: verifiedEmail,
-      customerName,
+      profile,
+      account,
+      services,
       session,
       authError,
       authMessage,

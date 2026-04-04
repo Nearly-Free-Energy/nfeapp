@@ -32,7 +32,7 @@ function App() {
   return (
     <DashboardScreen
       email={signedInState.email}
-      customerName={signedInState.customerName}
+      accountName={signedInState.account.displayName}
       onSignOut={handleSignOut}
     />
   );
