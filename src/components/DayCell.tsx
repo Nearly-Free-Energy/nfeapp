@@ -1,8 +1,8 @@
-import type { CalendarDay } from '../types';
-import { formatUsage, getUsageTier } from '../utils/energy';
+import type { UsageCalendarDay } from '../models/usage';
+import { formatUsageValue, getUsageTier } from '../utils/usage';
 
 type DayCellProps = {
-  day: CalendarDay;
+  day: UsageCalendarDay;
   comparisonValues: Array<number | null>;
   variant: 'week' | 'month';
   selected?: boolean;
@@ -10,7 +10,7 @@ type DayCellProps = {
 };
 
 export function DayCell({ day, comparisonValues, variant, selected = false, onSelect }: DayCellProps) {
-  const tier = day.isFuture ? 0 : getUsageTier(day.usageKwh, comparisonValues);
+  const tier = day.isFuture ? 0 : getUsageTier(day.usageValue, comparisonValues);
   const classes = [
     'day-cell',
     `day-cell--tier-${tier}`,
@@ -31,8 +31,8 @@ export function DayCell({ day, comparisonValues, variant, selected = false, onSe
   return (
     <button type="button" className={classes} onClick={() => onSelect?.(day.key)} aria-pressed={selected}>
       <span className="day-cell__date">{variant === 'week' ? label : day.date.getDate()}</span>
-      <span className="day-cell__usage">{formatUsage(day.usageKwh)}</span>
-      <span className="day-cell__unit">kWh</span>
+      <span className="day-cell__usage">{formatUsageValue(day.usageValue)}</span>
+      <span className="day-cell__unit">{day.unit}</span>
     </button>
   );
 }

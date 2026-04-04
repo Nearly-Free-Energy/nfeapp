@@ -1,8 +1,8 @@
-import type { EnergyCalendarView } from '../types';
+import type { UsageCalendarView } from '../models/usage';
 
 type ViewToggleProps = {
-  value: EnergyCalendarView;
-  onChange: (next: EnergyCalendarView) => void;
+  value: UsageCalendarView;
+  onChange: (next: UsageCalendarView) => void;
 };
 
 export function ViewToggle({ value, onChange }: ViewToggleProps) {

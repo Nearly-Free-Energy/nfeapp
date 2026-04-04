@@ -1,4 +1,4 @@
-import type { EnergyDay } from '../types';
+import type { UsagePoint } from '../models/usage';
 import { addDays, formatIsoDate, startOfDay } from '../utils/date';
 
 const BASE_USAGE = [
@@ -11,11 +11,12 @@ const BASE_USAGE = [
 
 export const MOCK_TODAY = startOfDay(new Date(2026, 2, 25));
 
-export const MOCK_ENERGY_DAYS: EnergyDay[] = BASE_USAGE.map((usage, index) => {
+export const MOCK_USAGE_POINTS: UsagePoint[] = BASE_USAGE.map((usage, index) => {
   const date = addDays(new Date(2026, 0, 1), index);
   return {
     date: formatIsoDate(date),
-    usageKwh: usage,
+    usageValue: usage,
+    unit: 'kWh',
     isFuture: date.getTime() > MOCK_TODAY.getTime(),
   };
 });

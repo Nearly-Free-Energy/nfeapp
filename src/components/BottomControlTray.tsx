@@ -1,11 +1,11 @@
-import type { EnergyCalendarView } from '../types';
+import type { UsageCalendarView } from '../models/usage';
 
 type BottomControlTrayProps = {
   label: string;
-  view: EnergyCalendarView;
+  view: UsageCalendarView;
   onPrevious: () => void;
   onNext: () => void;
-  onChangeView: (next: EnergyCalendarView) => void;
+  onChangeView: (next: UsageCalendarView) => void;
 };
 
 export function BottomControlTray({

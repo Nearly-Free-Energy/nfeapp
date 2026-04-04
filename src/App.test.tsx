@@ -106,7 +106,7 @@ describe('Electricity consumption dashboard', () => {
     expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Weekly energy usage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Weekly utility usage')).toBeInTheDocument();
 
     for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
       expect(screen.getByText(weekday, { selector: 'span' })).toBeInTheDocument();
@@ -122,10 +122,10 @@ describe('Electricity consumption dashboard', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByLabelText('Weekly energy usage');
+    await screen.findByLabelText('Weekly utility usage');
     await user.click(screen.getByRole('button', { name: 'Month' }));
 
-    expect(screen.getByLabelText('Monthly energy usage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Monthly utility usage')).toBeInTheDocument();
     expect(screen.getByText('Mar 2026')).toBeInTheDocument();
   });
 
@@ -133,7 +133,7 @@ describe('Electricity consumption dashboard', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByLabelText('Weekly energy usage');
+    await screen.findByLabelText('Weekly utility usage');
     await user.click(screen.getByRole('button', { name: 'Next period' }));
 
     expect(screen.getByText('Mar 29 - Apr 4')).toBeInTheDocument();

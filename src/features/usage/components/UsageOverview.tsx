@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import { BottomControlTray } from '../../../components/BottomControlTray';
-import { EnergySummary } from '../../../components/EnergySummary';
+import { UsageSummary } from '../../../components/UsageSummary';
 import { MonthlyCalendar } from '../../../components/MonthlyCalendar';
 import { WeeklyCalendar } from '../../../components/WeeklyCalendar';
-import { MOCK_ENERGY_DAYS, MOCK_TODAY } from '../../../data/mockEnergy';
-import type { EnergyCalendarView } from '../../../types';
+import { MOCK_TODAY, MOCK_USAGE_POINTS } from '../../../data/mockUsage';
+import type { UsageCalendarView } from '../../../models/usage';
 import { addDays, addMonths, endOfWeek, formatMonthYear, formatWeekRange, parseIsoDate, startOfWeek } from '../../../utils/date';
-import { buildEnergyLookup, getMonthDays, getWeekDays, summarizePeriod } from '../../../utils/energy';
+import { buildUsageLookup, getMonthDays, getWeekDays, summarizePeriod } from '../../../utils/usage';
 
 const INITIAL_ANCHOR_DATE = parseIsoDate('2026-03-22');
 
 export function UsageOverview() {
-  const [view, setView] = useState<EnergyCalendarView>('week');
+  const [view, setView] = useState<UsageCalendarView>('week');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
   const [selectedDayKey, setSelectedDayKey] = useState<string | undefined>(undefined);
 
-  const energyLookup = buildEnergyLookup(MOCK_ENERGY_DAYS);
-  const weekDays = getWeekDays(anchorDate, energyLookup, MOCK_TODAY);
-  const monthDays = getMonthDays(anchorDate, energyLookup, MOCK_TODAY);
+  const usageLookup = buildUsageLookup(MOCK_USAGE_POINTS);
+  const fallbackUnit = MOCK_USAGE_POINTS[0]?.unit ?? 'kWh';
+  const weekDays = getWeekDays(anchorDate, usageLookup, MOCK_TODAY, fallbackUnit);
+  const monthDays = getMonthDays(anchorDate, usageLookup, MOCK_TODAY, fallbackUnit);
   const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
   const summary = summarizePeriod(visibleDays);
   const periodLabel =
@@ -30,7 +31,7 @@ export function UsageOverview() {
 
   return (
     <>
-      <EnergySummary summary={summary} />
+      <UsageSummary summary={summary} />
 
       {view === 'week' ? (
         <WeeklyCalendar days={weekDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
