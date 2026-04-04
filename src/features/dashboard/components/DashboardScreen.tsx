@@ -1,19 +1,35 @@
+import type { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { AccountHeader } from '../../account/components/AccountHeader';
-import { UsageOverview } from '../../usage/components/UsageOverview';
 
 type DashboardScreenProps = {
   email: string;
   accountName: string;
   onSignOut: () => Promise<void>;
+  children: ReactNode;
 };
 
-export function DashboardScreen({ email, accountName, onSignOut }: DashboardScreenProps) {
+export function DashboardScreen({ email, accountName, onSignOut, children }: DashboardScreenProps) {
   return (
     <main className="app-shell">
       <section className="dashboard-card">
         <div className="eyebrow">Customer energy portal</div>
         <AccountHeader email={email} accountName={accountName} onSignOut={onSignOut} />
-        <UsageOverview />
+        <nav className="section-nav" aria-label="Portal sections">
+          <NavLink
+            to="/usage"
+            className={({ isActive }) => (isActive ? 'section-nav__link section-nav__link--active' : 'section-nav__link')}
+          >
+            Usage
+          </NavLink>
+          <NavLink
+            to="/account"
+            className={({ isActive }) => (isActive ? 'section-nav__link section-nav__link--active' : 'section-nav__link')}
+          >
+            Account
+          </NavLink>
+        </nav>
+        {children}
       </section>
     </main>
   );

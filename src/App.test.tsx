@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import type { MeApiResponse } from './models/customer';
 
@@ -71,6 +72,14 @@ vi.mock('./supabase', () => {
 });
 
 describe('Electricity consumption dashboard', () => {
+  function renderApp(initialEntry = '/') {
+    return render(
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <App />
+      </MemoryRouter>,
+    );
+  }
+
   afterEach(() => {
     vi.restoreAllMocks();
     authStateListeners.length = 0;
@@ -101,12 +110,14 @@ describe('Electricity consumption dashboard', () => {
   });
 
   it('renders the signed-in dashboard and keeps controls at the bottom', async () => {
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly utility usage')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
+    expect(screen.getByRole('link', { name: 'Account' })).toBeInTheDocument();
 
     for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
       expect(screen.getByText(weekday, { selector: 'span' })).toBeInTheDocument();
@@ -120,7 +131,7 @@ describe('Electricity consumption dashboard', () => {
 
   it('switches to month view and shows a month label', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await screen.findByLabelText('Weekly utility usage');
     await user.click(screen.getByRole('button', { name: 'Month' }));
@@ -131,7 +142,7 @@ describe('Electricity consumption dashboard', () => {
 
   it('navigates periods forward from weekly view', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await screen.findByLabelText('Weekly utility usage');
     await user.click(screen.getByRole('button', { name: 'Next period' }));
@@ -146,7 +157,7 @@ describe('Electricity consumption dashboard', () => {
       error: null,
     } as never);
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
     expect(screen.getByLabelText('Email address')).toBeInTheDocument();
@@ -161,7 +172,7 @@ describe('Electricity consumption dashboard', () => {
     } as never);
 
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await screen.findByRole('heading', { name: 'Sign in to view your energy dashboard' });
     await user.type(screen.getByLabelText('Email address'), 'person@example.com');
@@ -179,7 +190,7 @@ describe('Electricity consumption dashboard', () => {
   it('signs out when the user clicks sign out', async () => {
     const { supabase } = await import('./supabase');
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await screen.findByRole('heading', { name: 'Electricity Consumption' });
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
@@ -190,7 +201,7 @@ describe('Electricity consumption dashboard', () => {
   it('returns to the signed-out state when backend verification fails', async () => {
     apiMocks.getMe.mockRejectedValueOnce(new Error('Unable to verify your session.'));
 
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText('Unable to verify your session.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
@@ -201,11 +212,20 @@ describe('Electricity consumption dashboard', () => {
       new Error('Your account is signed in, but it is not linked to a customer profile yet.'),
     );
 
-    render(<App />);
+    renderApp();
 
     expect(
       await screen.findByText('Your account is signed in, but it is not linked to a customer profile yet.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sign in to view your energy dashboard' })).toBeInTheDocument();
+  });
+
+  it('renders the account route with customer profile and services', async () => {
+    renderApp('/account');
+
+    expect(await screen.findByLabelText('Account overview')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Account' })).toHaveClass('section-nav__link--active');
+    expect(screen.getByText('Customer Demo Profile')).toBeInTheDocument();
+    expect(screen.getByText('Customer Demo Account Electric Service')).toBeInTheDocument();
   });
 });

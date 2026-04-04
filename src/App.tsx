@@ -1,7 +1,10 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AccountOverview } from './features/account/components/AccountOverview';
 import { AuthStatusScreen } from './features/auth/components/AuthStatusScreen';
 import { SignInScreen } from './features/auth/components/SignInScreen';
 import { usePortalSession } from './features/auth/hooks/usePortalSession';
 import { DashboardScreen } from './features/dashboard/components/DashboardScreen';
+import { UsageOverview } from './features/usage/components/UsageOverview';
 
 function App() {
   const { state, handleEmailChange, handleSignIn, handleSignOut } = usePortalSession();
@@ -30,11 +33,38 @@ function App() {
   const signedInState = state;
 
   return (
-    <DashboardScreen
-      email={signedInState.email}
-      accountName={signedInState.account.displayName}
-      onSignOut={handleSignOut}
-    />
+    <Routes>
+      <Route
+        path="/usage"
+        element={
+          <DashboardScreen
+            email={signedInState.email}
+            accountName={signedInState.account.displayName}
+            onSignOut={handleSignOut}
+          >
+            <UsageOverview />
+          </DashboardScreen>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <DashboardScreen
+            email={signedInState.email}
+            accountName={signedInState.account.displayName}
+            onSignOut={handleSignOut}
+          >
+            <AccountOverview
+              profile={signedInState.profile}
+              account={signedInState.account}
+              services={signedInState.services}
+            />
+          </DashboardScreen>
+        }
+      />
+      <Route path="/" element={<Navigate to="/usage" replace />} />
+      <Route path="*" element={<Navigate to="/usage" replace />} />
+    </Routes>
   );
 }
 

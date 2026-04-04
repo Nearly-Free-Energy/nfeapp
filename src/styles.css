@@ -82,6 +82,32 @@ h1 {
   font-size: 1rem;
 }
 
+.section-nav {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 8px;
+  border-radius: 22px;
+  background: rgba(227, 238, 246, 0.92);
+  border: 1px solid #d1e0ea;
+}
+
+.section-nav__link {
+  padding: 12px 18px;
+  border-radius: 16px;
+  color: #527086;
+  font-weight: 800;
+  text-decoration: none;
+  text-align: center;
+}
+
+.section-nav__link--active {
+  background: linear-gradient(180deg, #ffffff, #eef5fa);
+  color: #184d72;
+  box-shadow: 0 10px 22px rgba(32, 77, 109, 0.12);
+}
+
 .auth-card {
   display: grid;
   gap: 18px;
@@ -190,6 +216,71 @@ h1 {
 .summary__value {
   font-size: clamp(1.4rem, 2.5vw, 2rem);
   color: #153f5c;
+}
+
+.account-overview {
+  display: grid;
+  gap: 18px;
+}
+
+.account-overview__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.account-panel,
+.service-card {
+  background: linear-gradient(180deg, #fefefe, #eef5fa);
+  border: 1px solid #d1e0ea;
+  border-radius: 24px;
+  padding: 22px 20px;
+}
+
+.account-panel__label,
+.service-card__type {
+  display: block;
+  margin-bottom: 10px;
+  color: #708499;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-panel__value,
+.service-card__name {
+  display: block;
+  color: #153f5c;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.account-panel__meta,
+.service-card__meta,
+.service-card__status,
+.service-list__header p {
+  color: #5d7286;
+  font-size: 0.96rem;
+}
+
+.service-list {
+  display: grid;
+  gap: 14px;
+}
+
+.service-list__header h2 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.service-list__header p {
+  margin: 0;
+}
+
+.service-list__items {
+  display: grid;
+  gap: 14px;
 }
 
 .calendar-block {
@@ -446,6 +537,10 @@ h1 {
 
 @media (max-width: 560px) {
   .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .account-overview__grid {
     grid-template-columns: 1fr;
   }
 
