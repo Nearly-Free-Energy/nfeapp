@@ -1,5 +1,5 @@
-import { legacyCustomerMap } from '../server/legacy-customer-map.ts';
-import { upsertCustomerAccess } from '../server/customer-data.ts';
+import { legacyCustomerMap } from '../server/legacy-customer-map.js';
+import { upsertCustomerAccess } from '../server/customer-data.js';
 
 async function main() {
   const migrated = [];

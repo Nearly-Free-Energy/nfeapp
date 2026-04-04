@@ -71,7 +71,7 @@ The `/api/me` response now returns:
 npm run db:migrate:customers
 ```
 
-This imports the current records from [server/legacy-customer-map.ts](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/legacy-customer-map.ts) and creates:
+This imports the current records from [legacy-customer-map.js](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/server/legacy-customer-map.js) and creates:
 
 - one customer profile per email
 - one account per profile

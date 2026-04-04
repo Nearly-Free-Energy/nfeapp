@@ -13,6 +13,9 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 describe('/api/me', () => {
+  vi.stubEnv('SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'sb_secret_test');
+
   function createResponseRecorder() {
     let statusCode = 200;
     let jsonBody: unknown;
@@ -41,14 +44,14 @@ describe('/api/me', () => {
     mockFrom.mockReset();
   });
 
-  function createQueryChain(result: { data: unknown; error: Error | null }) {
+  function createQueryChain(result: { data: unknown; error: Error | null }, options?: { resolveOnOrder?: boolean }) {
     return {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
+      order: options?.resolveOnOrder ? vi.fn().mockResolvedValue(result) : vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn(async () => result),
-      returns: vi.fn(async () => result),
+      then: undefined,
     };
   }
 
@@ -179,7 +182,7 @@ describe('/api/me', () => {
             },
           ],
           error: null,
-        }),
+        }, { resolveOnOrder: true }),
       );
 
     const { default: handler } = await import('../api/me');

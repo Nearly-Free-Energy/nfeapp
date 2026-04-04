@@ -1,17 +1,14 @@
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { upsertCustomerAccess } from '../server/customer-data.ts';
-import type { OnboardingCustomerInput } from '../src/models/customer.ts';
+import { upsertCustomerAccess } from '../server/customer-data.js';
 
-type ParsedService = OnboardingCustomerInput['services'];
-
-function parseServices(value: string): ParsedService {
-  const parsed = JSON.parse(value) as unknown;
+function parseServices(value) {
+  const parsed = JSON.parse(value);
   if (!Array.isArray(parsed) || parsed.length === 0) {
     throw new Error('The services payload must be a non-empty JSON array.');
   }
 
-  return parsed as ParsedService;
+  return parsed;
 }
 
 async function main() {
@@ -34,19 +31,20 @@ async function main() {
 
   if (!values.email || !values['profile-name'] || !values['account-number'] || !values['account-name'] || !servicesPayload) {
     throw new Error(
-      'Usage: node scripts/onboard-customer.ts --email <email> --profile-name <name> --account-number <account> --account-name <name> --services <json-array> [--append-services]',
+      'Usage: node scripts/onboard-customer.js --email <email> --profile-name <name> --account-number <account> --account-name <name> --services <json-array> [--append-services]',
     );
   }
 
-  const input: OnboardingCustomerInput = {
-    email: values.email,
-    profileDisplayName: values['profile-name'],
-    accountNumber: values['account-number'],
-    accountDisplayName: values['account-name'],
-    services: parseServices(servicesPayload),
-  };
-
-  const result = await upsertCustomerAccess(input, { appendServices: values['append-services'] });
+  const result = await upsertCustomerAccess(
+    {
+      email: values.email,
+      profileDisplayName: values['profile-name'],
+      accountNumber: values['account-number'],
+      accountDisplayName: values['account-name'],
+      services: parseServices(servicesPayload),
+    },
+    { appendServices: values['append-services'] },
+  );
 
   console.log(
     JSON.stringify(

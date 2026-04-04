@@ -1,10 +1,4 @@
-export type LegacyCustomerRecord = {
-  email: string;
-  customerId: string;
-  customerName: string;
-};
-
-export const legacyCustomerMap: LegacyCustomerRecord[] = [
+export const legacyCustomerMap = [
   {
     email: 'aaron.tushabe@nearlyfreeenergy.com',
     customerId: 'nfe-demo',

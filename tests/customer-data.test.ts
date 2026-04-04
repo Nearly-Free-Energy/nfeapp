@@ -43,6 +43,12 @@ function createFakeClient() {
           return this;
         },
         order() {
+          if (table === 'utility_services') {
+            return Promise.resolve({
+              data: serviceRows.filter((row) => row.utility_account_id === (this._filters ?? {}).utility_account_id),
+              error: null,
+            });
+          }
           return this;
         },
         limit() {
@@ -61,16 +67,6 @@ function createFakeClient() {
           }
           return { data: null, error: null };
         }),
-        returns: vi.fn(async function () {
-          const filters = (this as { _filters?: Record<string, string> })._filters ?? {};
-          if (table === 'utility_services') {
-            return {
-              data: serviceRows.filter((row) => row.utility_account_id === filters.utility_account_id),
-              error: null,
-            };
-          }
-          return { data: [], error: null };
-        }),
         upsert: vi.fn((payload: unknown) => {
           if (table === 'customer_profiles') {
             const record = payload as { email: string; display_name: string; status: string };
@@ -87,12 +83,10 @@ function createFakeClient() {
               });
             }
             return {
-              select: () => ({
-                returns: async () => ({
+              select: async () => ({
                   data: [profileRows.find((row) => row.email === record.email)!],
                   error: null,
                 }),
-              }),
             };
           }
 
@@ -118,12 +112,10 @@ function createFakeClient() {
             }
 
             return {
-              select: () => ({
-                returns: async () => ({
+              select: async () => ({
                   data: [accountRows.find((row) => row.account_number === record.account_number)!],
                   error: null,
                 }),
-              }),
             };
           }
 
@@ -159,8 +151,7 @@ function createFakeClient() {
           }
 
           return {
-            select: () => ({
-              returns: async () => ({
+            select: async () => ({
                 data: records.map((record, index) => ({
                   id: `service-upsert-${index + 1}`,
                   utility_account_id: record.utility_account_id,
@@ -171,7 +162,6 @@ function createFakeClient() {
                 })),
                 error: null,
               }),
-            }),
           };
         }),
         delete() {

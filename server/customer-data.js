@@ -1,41 +1,10 @@
-import type { MeApiResponse, OnboardingCustomerInput, OnboardingServiceInput, UtilityService } from '../src/models/customer';
-import { createServerSupabaseClient } from './supabase-admin.ts';
+import { createServerSupabaseClient } from './supabase-admin.js';
 
-type CustomerProfileRow = {
-  id: string;
-  email: string;
-  display_name: string;
-  status: string;
-};
-
-type UtilityAccountRow = {
-  id: string;
-  customer_profile_id: string;
-  account_number: string;
-  display_name: string;
-  status: string;
-};
-
-type UtilityServiceRow = {
-  id: string;
-  utility_account_id: string;
-  service_type: string;
-  service_name: string;
-  service_address: string | null;
-  status: string;
-};
-
-type UpsertOptions = {
-  appendServices?: boolean;
-};
-
-type CustomerDataClient = ReturnType<typeof createServerSupabaseClient>;
-
-export function normalizeEmail(email: string): string {
+export function normalizeEmail(email) {
   return email.trim().toLowerCase();
 }
 
-function normalizeOptionalText(value: string | null | undefined): string | null {
+function normalizeOptionalText(value) {
   if (!value) {
     return null;
   }
@@ -44,7 +13,7 @@ function normalizeOptionalText(value: string | null | undefined): string | null 
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function normalizeServiceInput(service: OnboardingServiceInput): OnboardingServiceInput {
+function normalizeServiceInput(service) {
   return {
     serviceType: service.serviceType,
     serviceName: service.serviceName.trim(),
@@ -53,7 +22,7 @@ function normalizeServiceInput(service: OnboardingServiceInput): OnboardingServi
   };
 }
 
-export async function fetchAuthorizedCustomer(email: string, client: CustomerDataClient = createServerSupabaseClient()) {
+export async function fetchAuthorizedCustomer(email, client = createServerSupabaseClient()) {
   const normalizedEmail = normalizeEmail(email);
 
   const { data: profile, error: profileError } = await client
@@ -61,7 +30,7 @@ export async function fetchAuthorizedCustomer(email: string, client: CustomerDat
     .select('id, email, display_name, status')
     .eq('email', normalizedEmail)
     .eq('status', 'active')
-    .maybeSingle<CustomerProfileRow>();
+    .maybeSingle();
 
   if (profileError) {
     throw new Error(`Unable to load customer profile: ${profileError.message}`);
@@ -78,7 +47,7 @@ export async function fetchAuthorizedCustomer(email: string, client: CustomerDat
     .eq('status', 'active')
     .order('created_at', { ascending: true })
     .limit(1)
-    .maybeSingle<UtilityAccountRow>();
+    .maybeSingle();
 
   if (accountError) {
     throw new Error(`Unable to load utility account: ${accountError.message}`);
@@ -93,8 +62,7 @@ export async function fetchAuthorizedCustomer(email: string, client: CustomerDat
     .select('id, utility_account_id, service_type, service_name, service_address, status')
     .eq('utility_account_id', account.id)
     .eq('status', 'active')
-    .order('created_at', { ascending: true })
-    .returns<UtilityServiceRow[]>();
+    .order('created_at', { ascending: true });
 
   if (servicesError) {
     throw new Error(`Unable to load utility services: ${servicesError.message}`);
@@ -103,11 +71,7 @@ export async function fetchAuthorizedCustomer(email: string, client: CustomerDat
   return toMeApiResponse(profile, account, services ?? []);
 }
 
-export async function upsertCustomerAccess(
-  input: OnboardingCustomerInput,
-  options: UpsertOptions = {},
-  client: CustomerDataClient = createServerSupabaseClient(),
-): Promise<MeApiResponse> {
+export async function upsertCustomerAccess(input, options = {}, client = createServerSupabaseClient()) {
   const normalizedEmail = normalizeEmail(input.email);
   const normalizedServices = input.services.map(normalizeServiceInput);
 
@@ -125,8 +89,7 @@ export async function upsertCustomerAccess(
       },
       { onConflict: 'email' },
     )
-    .select('id, email, display_name, status')
-    .returns<CustomerProfileRow[]>();
+    .select('id, email, display_name, status');
 
   if (profileError || !profileRows || profileRows.length === 0) {
     throw new Error(profileError?.message || 'Unable to upsert customer profile.');
@@ -145,8 +108,7 @@ export async function upsertCustomerAccess(
       },
       { onConflict: 'account_number' },
     )
-    .select('id, customer_profile_id, account_number, display_name, status')
-    .returns<UtilityAccountRow[]>();
+    .select('id, customer_profile_id, account_number, display_name, status');
 
   if (accountError || !accountRows || accountRows.length === 0) {
     throw new Error(accountError?.message || 'Unable to upsert utility account.');
@@ -173,8 +135,7 @@ export async function upsertCustomerAccess(
       })),
       { onConflict: 'utility_account_id,service_type,service_name' },
     )
-    .select('id, utility_account_id, service_type, service_name, service_address, status')
-    .returns<UtilityServiceRow[]>();
+    .select('id, utility_account_id, service_type, service_name, service_address, status');
 
   if (serviceError) {
     throw new Error(serviceError.message);
@@ -185,13 +146,12 @@ export async function upsertCustomerAccess(
   return toMeApiResponse(profile, account, finalServices);
 }
 
-async function loadServicesForAccount(accountId: string, client: CustomerDataClient): Promise<UtilityServiceRow[]> {
+async function loadServicesForAccount(accountId, client) {
   const { data, error } = await client
     .from('utility_services')
     .select('id, utility_account_id, service_type, service_name, service_address, status')
     .eq('utility_account_id', accountId)
-    .order('created_at', { ascending: true })
-    .returns<UtilityServiceRow[]>();
+    .order('created_at', { ascending: true });
 
   if (error) {
     throw new Error(`Unable to load utility services: ${error.message}`);
@@ -200,29 +160,29 @@ async function loadServicesForAccount(accountId: string, client: CustomerDataCli
   return data ?? [];
 }
 
-function toUtilityServices(rows: UtilityServiceRow[]): UtilityService[] {
+function toUtilityServices(rows) {
   return rows.map((row) => ({
     id: row.id,
-    serviceType: row.service_type as UtilityService['serviceType'],
+    serviceType: row.service_type,
     serviceName: row.service_name,
     serviceAddress: row.service_address,
-    status: row.status as UtilityService['status'],
+    status: row.status,
   }));
 }
 
-function toMeApiResponse(profile: CustomerProfileRow, account: UtilityAccountRow, services: UtilityServiceRow[]): MeApiResponse {
+function toMeApiResponse(profile, account, services) {
   return {
     email: profile.email,
     profile: {
       id: profile.id,
       displayName: profile.display_name,
-      status: profile.status as MeApiResponse['profile']['status'],
+      status: profile.status,
     },
     account: {
       id: account.id,
       accountNumber: account.account_number,
       displayName: account.display_name,
-      status: account.status as MeApiResponse['account']['status'],
+      status: account.status,
     },
     services: toUtilityServices(services),
   };
