@@ -29,6 +29,32 @@ const apiMocks = vi.hoisted(() => ({
         status: 'active',
       },
     ],
+    microgrids: [
+      {
+        id: 'microgrid-demo',
+        microgridCode: 'demo-microgrid',
+        displayName: 'Demo Microgrid',
+        status: 'active',
+        timezone: 'Africa/Kampala',
+        gateways: [
+          {
+            id: 'gateway-demo',
+            gatewaySlug: 'gw-aaron',
+            displayName: 'Aaron Test Gateway',
+            status: 'active',
+            devices: [
+              {
+                id: 'device-demo',
+                deviceSlug: 'meter-main',
+                deviceType: 'single-phase-smart-meter',
+                vendorModel: 'Chint DDSU666',
+                status: 'active',
+              },
+            ],
+          },
+        ],
+      },
+    ],
   })),
   getUsage: vi.fn(async (): Promise<UsageApiResponse> => ({
     accountId: 'account-demo',
@@ -121,6 +147,32 @@ describe('Electricity consumption dashboard', () => {
           serviceName: 'Customer Demo Account Electric Service',
           serviceAddress: null,
           status: 'active',
+        },
+      ],
+      microgrids: [
+        {
+          id: 'microgrid-demo',
+          microgridCode: 'demo-microgrid',
+          displayName: 'Demo Microgrid',
+          status: 'active',
+          timezone: 'Africa/Kampala',
+          gateways: [
+            {
+              id: 'gateway-demo',
+              gatewaySlug: 'gw-aaron',
+              displayName: 'Aaron Test Gateway',
+              status: 'active',
+              devices: [
+                {
+                  id: 'device-demo',
+                  deviceSlug: 'meter-main',
+                  deviceType: 'single-phase-smart-meter',
+                  vendorModel: 'Chint DDSU666',
+                  status: 'active',
+                },
+              ],
+            },
+          ],
         },
       ],
     });
@@ -263,5 +315,8 @@ describe('Electricity consumption dashboard', () => {
     expect(screen.getByRole('link', { name: 'Account' })).toHaveClass('section-nav__link--active');
     expect(screen.getByText('Customer Demo Profile')).toBeInTheDocument();
     expect(screen.getByText('Customer Demo Account Electric Service')).toBeInTheDocument();
+    expect(screen.getByText('Demo Microgrid')).toBeInTheDocument();
+    expect(screen.getByText(/Aaron Test Gateway/)).toBeInTheDocument();
+    expect(screen.getByText(/Chint DDSU666/)).toBeInTheDocument();
   });
 });

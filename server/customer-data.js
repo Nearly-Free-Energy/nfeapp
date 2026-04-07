@@ -68,6 +68,9 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
     throw new Error(`Unable to load utility services: ${servicesError.message}`);
   }
 
+  const normalizedServices = toUtilityServices(services ?? []);
+  const microgrids = await loadMicrogridTopology(normalizedServices, client);
+
   return {
     email: profile.email,
     profile: {
@@ -81,7 +84,8 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
       displayName: account.display_name,
       status: account.status,
     },
-    services: toUtilityServices(services ?? []),
+    services: normalizedServices,
+    microgrids,
   };
 }
 
@@ -180,7 +184,88 @@ export async function upsertCustomerAccess(input, options = {}, client = createS
       status: account.status,
     },
     services: toUtilityServices(finalServices),
+    microgrids: [],
   };
+}
+
+async function loadMicrogridTopology(services, client) {
+  const serviceIds = services.map((service) => service.id);
+  if (serviceIds.length === 0) {
+    return [];
+  }
+
+  const { data: serviceLinks, error: serviceLinksError } = await client
+    .from('utility_service_microgrids')
+    .select('utility_service_id, microgrid_id')
+    .in('utility_service_id', serviceIds);
+
+  if (serviceLinksError) {
+    throw new Error(`Unable to load service microgrid links: ${serviceLinksError.message}`);
+  }
+
+  const microgridIds = [...new Set((serviceLinks ?? []).map((row) => row.microgrid_id))];
+  if (microgridIds.length === 0) {
+    return [];
+  }
+
+  const { data: microgridRows, error: microgridError } = await client
+    .from('microgrids')
+    .select('id, microgrid_code, display_name, status, timezone')
+    .in('id', microgridIds);
+
+  if (microgridError) {
+    throw new Error(`Unable to load microgrids: ${microgridError.message}`);
+  }
+
+  const { data: gatewayRows, error: gatewayError } = await client
+    .from('gateways')
+    .select('id, microgrid_id, gateway_slug, display_name, status')
+    .in('microgrid_id', microgridIds);
+
+  if (gatewayError) {
+    throw new Error(`Unable to load gateways: ${gatewayError.message}`);
+  }
+
+  const gatewayIds = [...new Set((gatewayRows ?? []).map((row) => row.id))];
+
+  const { data: deviceRows, error: deviceError } =
+    gatewayIds.length === 0
+      ? { data: [], error: null }
+      : await client
+          .from('field_devices')
+          .select('id, gateway_id, device_slug, device_type, vendor_model, status')
+          .in('gateway_id', gatewayIds);
+
+  if (deviceError) {
+    throw new Error(`Unable to load field devices: ${deviceError.message}`);
+  }
+
+  return (microgridRows ?? [])
+    .map((microgrid) => ({
+      id: microgrid.id,
+      microgridCode: microgrid.microgrid_code,
+      displayName: microgrid.display_name,
+      status: microgrid.status,
+      timezone: microgrid.timezone,
+      gateways: (gatewayRows ?? [])
+        .filter((gateway) => gateway.microgrid_id === microgrid.id)
+        .map((gateway) => ({
+          id: gateway.id,
+          gatewaySlug: gateway.gateway_slug,
+          displayName: gateway.display_name,
+          status: gateway.status,
+          devices: (deviceRows ?? [])
+            .filter((device) => device.gateway_id === gateway.id)
+            .map((device) => ({
+              id: device.id,
+              deviceSlug: device.device_slug,
+              deviceType: device.device_type,
+              vendorModel: device.vendor_model,
+              status: device.status,
+            })),
+        })),
+    }))
+    .sort((left, right) => left.displayName.localeCompare(right.displayName));
 }
 
 async function loadServicesForAccount(accountId, client) {

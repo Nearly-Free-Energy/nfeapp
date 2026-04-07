@@ -30,12 +30,74 @@ function createFakeClient() {
       status: 'active',
     },
   ];
+  const serviceMicrogridRows = [
+    {
+      utility_service_id: 'service-1',
+      microgrid_id: 'microgrid-1',
+    },
+  ];
+  const microgridRows = [
+    {
+      id: 'microgrid-1',
+      microgrid_code: 'demo-microgrid',
+      display_name: 'Demo Microgrid',
+      status: 'active',
+      timezone: 'Africa/Kampala',
+    },
+  ];
+  const gatewayRows = [
+    {
+      id: 'gateway-1',
+      microgrid_id: 'microgrid-1',
+      gateway_slug: 'gw-aaron',
+      display_name: 'Aaron Test Gateway',
+      status: 'active',
+    },
+  ];
+  const fieldDeviceRows = [
+    {
+      id: 'device-1',
+      gateway_id: 'gateway-1',
+      device_slug: 'meter-main',
+      device_type: 'single-phase-smart-meter',
+      vendor_model: 'Chint DDSU666',
+      status: 'active',
+    },
+  ];
 
   return {
     from(table: string) {
       return {
         select() {
           return this;
+        },
+        in(field, values) {
+          this._inFilter = { field, values };
+          if (table === 'utility_service_microgrids') {
+            return Promise.resolve({
+              data: serviceMicrogridRows.filter((row) => values.includes(row[field])),
+              error: null,
+            });
+          }
+          if (table === 'microgrids') {
+            return Promise.resolve({
+              data: microgridRows.filter((row) => values.includes(row[field])),
+              error: null,
+            });
+          }
+          if (table === 'gateways') {
+            return Promise.resolve({
+              data: gatewayRows.filter((row) => values.includes(row[field])),
+              error: null,
+            });
+          }
+          if (table === 'field_devices') {
+            return Promise.resolve({
+              data: fieldDeviceRows.filter((row) => values.includes(row[field])),
+              error: null,
+            });
+          }
+          return Promise.resolve({ data: [], error: null });
         },
         eq(field: string, value: string) {
           (this as { _filters?: Record<string, string> })._filters ??= {};
@@ -194,6 +256,21 @@ describe('customer data helpers', () => {
       services: [
         {
           serviceType: 'electric',
+        },
+      ],
+      microgrids: [
+        {
+          microgridCode: 'demo-microgrid',
+          gateways: [
+            {
+              gatewaySlug: 'gw-aaron',
+              devices: [
+                {
+                  vendorModel: 'Chint DDSU666',
+                },
+              ],
+            },
+          ],
         },
       ],
     });

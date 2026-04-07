@@ -58,6 +58,7 @@ function App() {
               profile={signedInState.profile}
               account={signedInState.account}
               services={signedInState.services}
+              microgrids={signedInState.microgrids}
             />
           </DashboardScreen>
         }

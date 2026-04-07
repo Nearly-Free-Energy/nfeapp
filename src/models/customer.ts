@@ -23,11 +23,37 @@ export type UtilityService = {
   status: RecordStatus;
 };
 
+export type FieldDevice = {
+  id: string;
+  deviceSlug: string;
+  deviceType: string;
+  vendorModel: string;
+  status: RecordStatus;
+};
+
+export type Gateway = {
+  id: string;
+  gatewaySlug: string;
+  displayName: string;
+  status: RecordStatus;
+  devices: FieldDevice[];
+};
+
+export type Microgrid = {
+  id: string;
+  microgridCode: string;
+  displayName: string;
+  status: RecordStatus;
+  timezone: string;
+  gateways: Gateway[];
+};
+
 export type MeApiResponse = {
   email: string;
   profile: CustomerProfile;
   account: UtilityAccount;
   services: UtilityService[];
+  microgrids: Microgrid[];
 };
 
 export type OnboardingServiceInput = {

@@ -137,32 +137,32 @@ describe('/api/me', () => {
       },
       error: null,
     });
-    mockFrom
-      .mockReturnValueOnce(
-        createQueryChain({
-          data: {
-            id: 'profile-demo',
-            email: 'customer@example.com',
-            display_name: 'Customer Demo Profile',
-            status: 'active',
-          },
-          error: null,
-        }),
-      )
-      .mockReturnValueOnce(
-        createQueryChain({
-          data: {
-            id: 'account-demo',
-            customer_profile_id: 'profile-demo',
-            account_number: 'customer-demo',
-            display_name: 'Customer Demo Account',
-            status: 'active',
-          },
-          error: null,
-        }),
-      )
-      .mockReturnValueOnce(
-        createQueryChain({
+    mockFrom.mockReturnValueOnce(
+      createQueryChain({
+        data: {
+          id: 'profile-demo',
+          email: 'customer@example.com',
+          display_name: 'Customer Demo Profile',
+          status: 'active',
+        },
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(
+      createQueryChain({
+        data: {
+          id: 'account-demo',
+          customer_profile_id: 'profile-demo',
+          account_number: 'customer-demo',
+          display_name: 'Customer Demo Account',
+          status: 'active',
+        },
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(
+      createQueryChain(
+        {
           data: [
             {
               id: 'service-electric',
@@ -182,8 +182,68 @@ describe('/api/me', () => {
             },
           ],
           error: null,
-        }, { resolveOnOrder: true }),
-      );
+        },
+        { resolveOnOrder: true },
+      ),
+    );
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn(async () => ({
+        data: [
+          {
+            utility_service_id: 'service-electric',
+            microgrid_id: 'microgrid-demo',
+          },
+        ],
+        error: null,
+      })),
+    });
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn(async () => ({
+        data: [
+          {
+            id: 'microgrid-demo',
+            microgrid_code: 'demo-microgrid',
+            display_name: 'Demo Microgrid',
+            status: 'active',
+            timezone: 'Africa/Kampala',
+          },
+        ],
+        error: null,
+      })),
+    });
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn(async () => ({
+        data: [
+          {
+            id: 'gateway-demo',
+            microgrid_id: 'microgrid-demo',
+            gateway_slug: 'gw-aaron',
+            display_name: 'Aaron Test Gateway',
+            status: 'active',
+          },
+        ],
+        error: null,
+      })),
+    });
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn(async () => ({
+        data: [
+          {
+            id: 'device-demo',
+            gateway_id: 'gateway-demo',
+            device_slug: 'meter-main',
+            device_type: 'single-phase-smart-meter',
+            vendor_model: 'Chint DDSU666',
+            status: 'active',
+          },
+        ],
+        error: null,
+      })),
+    });
 
     const { default: handler } = await import('../api/me');
     const recorder = createResponseRecorder();
@@ -226,6 +286,32 @@ describe('/api/me', () => {
           serviceName: 'Customer Demo Account Water Service',
           serviceAddress: '123 Main St',
           status: 'active',
+        },
+      ],
+      microgrids: [
+        {
+          id: 'microgrid-demo',
+          microgridCode: 'demo-microgrid',
+          displayName: 'Demo Microgrid',
+          status: 'active',
+          timezone: 'Africa/Kampala',
+          gateways: [
+            {
+              id: 'gateway-demo',
+              gatewaySlug: 'gw-aaron',
+              displayName: 'Aaron Test Gateway',
+              status: 'active',
+              devices: [
+                {
+                  id: 'device-demo',
+                  deviceSlug: 'meter-main',
+                  deviceType: 'single-phase-smart-meter',
+                  vendorModel: 'Chint DDSU666',
+                  status: 'active',
+                },
+              ],
+            },
+          ],
         },
       ],
     });

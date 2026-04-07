@@ -1,7 +1,7 @@
 import { Session } from '@supabase/supabase-js';
 import { FormEvent, useEffect, useState } from 'react';
 import { getMe } from '../../../api';
-import type { CustomerProfile, UtilityAccount, UtilityService } from '../../../models/customer';
+import type { CustomerProfile, Microgrid, UtilityAccount, UtilityService } from '../../../models/customer';
 import { supabase } from '../../../supabase';
 
 export type PortalSessionState =
@@ -32,6 +32,7 @@ export type PortalSessionState =
       profile: CustomerProfile;
       account: UtilityAccount;
       services: UtilityService[];
+      microgrids: Microgrid[];
       session: Session;
       authError: string | null;
       authMessage: string | null;
@@ -56,6 +57,7 @@ export function usePortalSession(): UsePortalSessionResult {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [account, setAccount] = useState<UtilityAccount | null>(null);
   const [services, setServices] = useState<UtilityService[]>([]);
+  const [microgrids, setMicrogrids] = useState<Microgrid[]>([]);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setProfile(null);
         setAccount(null);
         setServices([]);
+        setMicrogrids([]);
         if (data.session?.user.email) {
           setEmail(data.session.user.email);
         }
@@ -94,6 +97,7 @@ export function usePortalSession(): UsePortalSessionResult {
       setProfile(null);
       setAccount(null);
       setServices([]);
+      setMicrogrids([]);
 
       if (nextSession?.user.email) {
         setEmail(nextSession.user.email);
@@ -115,6 +119,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setProfile(null);
         setAccount(null);
         setServices([]);
+        setMicrogrids([]);
         setIsVerifyingSession(false);
         return;
       }
@@ -131,6 +136,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setProfile(profile.profile);
         setAccount(profile.account);
         setServices(profile.services);
+        setMicrogrids(profile.microgrids);
         setAuthError(null);
       } catch (error) {
         if (!isMounted) {
@@ -141,6 +147,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setProfile(null);
         setAccount(null);
         setServices([]);
+        setMicrogrids([]);
         setAuthMessage(null);
 
         const message = error instanceof Error ? error.message : 'Unable to verify your session.';
@@ -190,6 +197,7 @@ export function usePortalSession(): UsePortalSessionResult {
     setProfile(null);
     setAccount(null);
     setServices([]);
+    setMicrogrids([]);
     setAuthMessage(null);
     setAuthError(null);
   }
@@ -261,6 +269,7 @@ export function usePortalSession(): UsePortalSessionResult {
       profile,
       account,
       services,
+      microgrids,
       session,
       authError,
       authMessage,
