@@ -1,7 +1,16 @@
 import type { MeApiResponse } from './models/customer';
+import type { UsageApiResponse } from './models/usage';
 
 export async function getMe(accessToken: string): Promise<MeApiResponse> {
-  const response = await fetch('/api/me', {
+  return requestJson<MeApiResponse>('/api/me', accessToken, 'Unable to verify your session.');
+}
+
+export async function getUsage(accessToken: string): Promise<UsageApiResponse> {
+  return requestJson<UsageApiResponse>('/api/usage', accessToken, 'Unable to load usage.');
+}
+
+async function requestJson<T>(url: string, accessToken: string, defaultErrorMessage: string): Promise<T> {
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -24,15 +33,15 @@ export async function getMe(accessToken: string): Promise<MeApiResponse> {
     }
 
     if (body) {
-      throw new Error(body.split('\n')[0] || 'Unable to verify your session.');
+      throw new Error(body.split('\n')[0] || defaultErrorMessage);
     }
 
-    throw new Error('Unable to verify your session.');
+    throw new Error(defaultErrorMessage);
   }
 
   if (!payload) {
-    throw new Error('Unable to verify your session.');
+    throw new Error(defaultErrorMessage);
   }
 
-  return payload as unknown as MeApiResponse;
+  return payload as unknown as T;
 }

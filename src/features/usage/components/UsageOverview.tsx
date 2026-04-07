@@ -1,25 +1,70 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getUsage } from '../../../api';
 import { BottomControlTray } from '../../../components/BottomControlTray';
 import { UsageSummary } from '../../../components/UsageSummary';
 import { MonthlyCalendar } from '../../../components/MonthlyCalendar';
 import { WeeklyCalendar } from '../../../components/WeeklyCalendar';
-import { MOCK_TODAY, MOCK_USAGE_POINTS } from '../../../data/mockUsage';
-import type { UsageCalendarDay, UsageCalendarView } from '../../../models/usage';
+import type { UsageApiResponse, UsageCalendarDay, UsageCalendarView } from '../../../models/usage';
 import { SelectedUsagePanel } from './SelectedUsagePanel';
 import { addDays, addMonths, endOfWeek, formatMonthYear, formatWeekRange, parseIsoDate, startOfWeek } from '../../../utils/date';
 import { buildUsageLookup, getMonthDays, getWeekDays, summarizePeriod } from '../../../utils/usage';
 
 const INITIAL_ANCHOR_DATE = parseIsoDate('2026-03-22');
 
-export function UsageOverview() {
+type UsageOverviewProps = {
+  accessToken: string;
+};
+
+export function UsageOverview({ accessToken }: UsageOverviewProps) {
   const [view, setView] = useState<UsageCalendarView>('week');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
   const [selectedDayKey, setSelectedDayKey] = useState<string | undefined>(undefined);
+  const [usageData, setUsageData] = useState<UsageApiResponse | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
 
-  const usageLookup = buildUsageLookup(MOCK_USAGE_POINTS);
-  const fallbackUnit = MOCK_USAGE_POINTS[0]?.unit ?? 'kWh';
-  const weekDays = getWeekDays(anchorDate, usageLookup, MOCK_TODAY, fallbackUnit);
-  const monthDays = getMonthDays(anchorDate, usageLookup, MOCK_TODAY, fallbackUnit);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUsage() {
+      setIsLoadingUsage(true);
+      setUsageError(null);
+
+      try {
+        const nextUsage = await getUsage(accessToken);
+        if (!isMounted) {
+          return;
+        }
+
+        setUsageData(nextUsage);
+        setAnchorDate(parseIsoDate(nextUsage.today));
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : 'Unable to load usage.';
+        setUsageError(message);
+      } finally {
+        if (isMounted) {
+          setIsLoadingUsage(false);
+        }
+      }
+    }
+
+    void loadUsage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken]);
+
+  const usagePoints = usageData?.points ?? [];
+  const usageLookup = buildUsageLookup(usagePoints);
+  const fallbackUnit = usageData?.unit ?? 'kWh';
+  const usageToday = parseIsoDate(usageData?.today ?? '2026-03-25');
+  const weekDays = getWeekDays(anchorDate, usageLookup, usageToday, fallbackUnit);
+  const monthDays = getMonthDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
   const summary = summarizePeriod(visibleDays);
   const selectedDay = visibleDays.find((day) => day.key === selectedDayKey) ?? findDefaultSelectedDay(visibleDays, anchorDate);
@@ -33,6 +78,14 @@ export function UsageOverview() {
 
   return (
     <>
+      {isLoadingUsage ? <p className="usage-status-message">Loading usage history...</p> : null}
+      {usageError ? <p className="usage-status-message" role="alert">{usageError}</p> : null}
+      {usageData?.source === 'seeded-demo' ? (
+        <p className="usage-status-message">
+          Showing seeded platform demo data from the backend until telemetry-backed usage snapshots are available.
+        </p>
+      ) : null}
+
       <UsageSummary summary={summary} />
 
       {view === 'week' ? (

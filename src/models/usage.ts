@@ -9,6 +9,16 @@ export type UsagePoint = {
   isFuture?: boolean;
 };
 
+export type UsageApiResponse = {
+  accountId: string;
+  serviceId: string | null;
+  serviceName: string | null;
+  unit: UsageUnit;
+  source: 'database' | 'seeded-demo';
+  today: string;
+  points: UsagePoint[];
+};
+
 export type UsagePeriodSummary = {
   totalUsage: number;
   averageDailyUsage: number;

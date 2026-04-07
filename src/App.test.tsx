@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import type { MeApiResponse } from './models/customer';
+import type { UsageApiResponse } from './models/usage';
 
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 const apiMocks = vi.hoisted(() => ({
@@ -29,10 +30,25 @@ const apiMocks = vi.hoisted(() => ({
       },
     ],
   })),
+  getUsage: vi.fn(async (): Promise<UsageApiResponse> => ({
+    accountId: 'account-demo',
+    serviceId: 'service-demo',
+    serviceName: 'Customer Demo Account Electric Service',
+    unit: 'kWh',
+    source: 'seeded-demo',
+    today: '2026-03-25',
+    points: [
+      { date: '2026-03-22', usageValue: 31, unit: 'kWh', isFuture: false },
+      { date: '2026-03-23', usageValue: 27, unit: 'kWh', isFuture: false },
+      { date: '2026-03-24', usageValue: 24, unit: 'kWh', isFuture: false },
+      { date: '2026-03-25', usageValue: 22, unit: 'kWh', isFuture: false },
+    ],
+  })),
 }));
 
 vi.mock('./api', () => ({
   getMe: apiMocks.getMe,
+  getUsage: apiMocks.getUsage,
 }));
 
 vi.mock('./supabase', () => {
@@ -84,6 +100,7 @@ describe('Electricity consumption dashboard', () => {
     vi.restoreAllMocks();
     authStateListeners.length = 0;
     apiMocks.getMe.mockReset();
+    apiMocks.getUsage.mockReset();
     apiMocks.getMe.mockResolvedValue({
       email: 'customer@example.com',
       profile: {
@@ -107,6 +124,20 @@ describe('Electricity consumption dashboard', () => {
         },
       ],
     });
+    apiMocks.getUsage.mockResolvedValue({
+      accountId: 'account-demo',
+      serviceId: 'service-demo',
+      serviceName: 'Customer Demo Account Electric Service',
+      unit: 'kWh',
+      source: 'seeded-demo',
+      today: '2026-03-25',
+      points: [
+        { date: '2026-03-22', usageValue: 31, unit: 'kWh', isFuture: false },
+        { date: '2026-03-23', usageValue: 27, unit: 'kWh', isFuture: false },
+        { date: '2026-03-24', usageValue: 24, unit: 'kWh', isFuture: false },
+        { date: '2026-03-25', usageValue: 22, unit: 'kWh', isFuture: false },
+      ],
+    });
   });
 
   it('renders the signed-in dashboard and keeps controls at the bottom', async () => {
@@ -114,6 +145,7 @@ describe('Electricity consumption dashboard', () => {
 
     expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
+    expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly utility usage')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
@@ -130,6 +162,7 @@ describe('Electricity consumption dashboard', () => {
     expect(within(controls).getByRole('button', { name: 'Week' })).toBeInTheDocument();
     expect(within(controls).getByRole('button', { name: 'Month' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    expect(screen.getByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
   });
 
   it('switches to month view and shows a month label', async () => {

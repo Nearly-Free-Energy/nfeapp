@@ -22,7 +22,7 @@ function normalizeServiceInput(service) {
   };
 }
 
-export async function fetchAuthorizedCustomer(email, client = createServerSupabaseClient()) {
+export async function fetchAuthorizedCustomerContext(email, client = createServerSupabaseClient()) {
   const normalizedEmail = normalizeEmail(email);
 
   const { data: profile, error: profileError } = await client
@@ -68,7 +68,30 @@ export async function fetchAuthorizedCustomer(email, client = createServerSupaba
     throw new Error(`Unable to load utility services: ${servicesError.message}`);
   }
 
-  return toMeApiResponse(profile, account, services ?? []);
+  return {
+    email: profile.email,
+    profile: {
+      id: profile.id,
+      displayName: profile.display_name,
+      status: profile.status,
+    },
+    account: {
+      id: account.id,
+      accountNumber: account.account_number,
+      displayName: account.display_name,
+      status: account.status,
+    },
+    services: toUtilityServices(services ?? []),
+  };
+}
+
+export async function fetchAuthorizedCustomer(email, client = createServerSupabaseClient()) {
+  const context = await fetchAuthorizedCustomerContext(email, client);
+  if (!context) {
+    return null;
+  }
+
+  return context;
 }
 
 export async function upsertCustomerAccess(input, options = {}, client = createServerSupabaseClient()) {
@@ -143,7 +166,21 @@ export async function upsertCustomerAccess(input, options = {}, client = createS
 
   const finalServices = options.appendServices ? await loadServicesForAccount(account.id, client) : serviceRows ?? [];
 
-  return toMeApiResponse(profile, account, finalServices);
+  return {
+    email: profile.email,
+    profile: {
+      id: profile.id,
+      displayName: profile.display_name,
+      status: profile.status,
+    },
+    account: {
+      id: account.id,
+      accountNumber: account.account_number,
+      displayName: account.display_name,
+      status: account.status,
+    },
+    services: toUtilityServices(finalServices),
+  };
 }
 
 async function loadServicesForAccount(accountId, client) {
@@ -168,22 +205,4 @@ function toUtilityServices(rows) {
     serviceAddress: row.service_address,
     status: row.status,
   }));
-}
-
-function toMeApiResponse(profile, account, services) {
-  return {
-    email: profile.email,
-    profile: {
-      id: profile.id,
-      displayName: profile.display_name,
-      status: profile.status,
-    },
-    account: {
-      id: account.id,
-      accountNumber: account.account_number,
-      displayName: account.display_name,
-      status: account.status,
-    },
-    services: toUtilityServices(services),
-  };
 }
