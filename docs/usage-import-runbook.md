@@ -48,6 +48,7 @@ Suggested behavior:
 - keep the import mount read-only
 - keep `USAGE_IMPORT_REPROCESS_DAYS=3` so corrected or late files are reprocessed
 - use `USAGE_IMPORT_FORCE_FULL_SYNC=true` only for explicit backfills
+- on this laptop, the `launchd` job can call `scripts/run-scheduled-usage-import.sh` once per day
 
 ## Import rules
 
