@@ -70,6 +70,35 @@ create table if not exists field_devices (
   unique (gateway_id, device_slug)
 );
 
+create table if not exists meter_sources (
+  id uuid primary key default gen_random_uuid(),
+  utility_service_id uuid not null references utility_services(id) on delete cascade,
+  meter_id text not null unique,
+  source_type text not null default 'nextcloud_csv',
+  meter_name text,
+  timezone text not null default 'UTC',
+  status text not null default 'active',
+  last_successful_import_at timestamptz,
+  last_imported_file text,
+  last_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (utility_service_id)
+);
+
+create table if not exists usage_import_files (
+  id uuid primary key default gen_random_uuid(),
+  meter_source_id uuid references meter_sources(id) on delete set null,
+  file_path text not null unique,
+  source_modified_at timestamptz,
+  import_status text not null default 'pending',
+  row_count integer not null default 0,
+  imported_at timestamptz,
+  error_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists usage_daily_snapshots (
   id uuid primary key default gen_random_uuid(),
   utility_service_id uuid not null references utility_services(id) on delete cascade,
@@ -89,4 +118,8 @@ create index if not exists idx_utility_service_microgrids_service on utility_ser
 create index if not exists idx_utility_service_microgrids_microgrid on utility_service_microgrids(microgrid_id);
 create index if not exists idx_gateways_microgrid on gateways(microgrid_id);
 create index if not exists idx_field_devices_gateway on field_devices(gateway_id);
+create index if not exists idx_meter_sources_service on meter_sources(utility_service_id);
+create index if not exists idx_meter_sources_status on meter_sources(status);
+create index if not exists idx_usage_import_files_status on usage_import_files(import_status);
+create index if not exists idx_usage_import_files_meter_source on usage_import_files(meter_source_id);
 create index if not exists idx_usage_daily_snapshots_service_date on usage_daily_snapshots(utility_service_id, usage_date);

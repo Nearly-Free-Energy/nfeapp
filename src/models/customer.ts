@@ -23,6 +23,14 @@ export type UtilityService = {
   status: RecordStatus;
 };
 
+export type MeterSource = {
+  meterId: string;
+  sourceType: string;
+  meterName?: string | null;
+  timezone?: string | null;
+  status?: RecordStatus;
+};
+
 export type FieldDevice = {
   id: string;
   deviceSlug: string;
@@ -61,6 +69,7 @@ export type OnboardingServiceInput = {
   serviceName: string;
   serviceAddress?: string | null;
   status?: RecordStatus;
+  meterSource?: MeterSource;
 };
 
 export type OnboardingCustomerInput = {

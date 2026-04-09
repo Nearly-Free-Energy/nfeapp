@@ -14,11 +14,32 @@ function normalizeOptionalText(value) {
 }
 
 function normalizeServiceInput(service) {
+  const normalizedMeterSource = normalizeMeterSourceInput(service.meterSource);
+
   return {
     serviceType: service.serviceType,
     serviceName: service.serviceName.trim(),
     serviceAddress: normalizeOptionalText(service.serviceAddress),
     status: service.status ?? 'active',
+    meterSource: normalizedMeterSource,
+  };
+}
+
+function normalizeMeterSourceInput(meterSource) {
+  if (!meterSource) {
+    return null;
+  }
+
+  if (!meterSource.meterId || typeof meterSource.meterId !== 'string') {
+    throw new Error('A meter source must include a meterId string.');
+  }
+
+  return {
+    meterId: meterSource.meterId.trim(),
+    sourceType: normalizeOptionalText(meterSource.sourceType) ?? 'nextcloud_csv',
+    meterName: normalizeOptionalText(meterSource.meterName),
+    timezone: normalizeOptionalText(meterSource.timezone) ?? 'UTC',
+    status: meterSource.status ?? 'active',
   };
 }
 
@@ -168,6 +189,8 @@ export async function upsertCustomerAccess(input, options = {}, client = createS
     throw new Error(serviceError.message);
   }
 
+  await upsertMeterSourcesForServices(serviceRows ?? [], normalizedServices, client);
+
   const finalServices = options.appendServices ? await loadServicesForAccount(account.id, client) : serviceRows ?? [];
 
   return {
@@ -266,6 +289,41 @@ async function loadMicrogridTopology(services, client) {
         })),
     }))
     .sort((left, right) => left.displayName.localeCompare(right.displayName));
+}
+
+async function upsertMeterSourcesForServices(serviceRows, normalizedServices, client) {
+  const meterSourcePayload = serviceRows.flatMap((serviceRow) => {
+    const matchingInput = normalizedServices.find(
+      (service) =>
+        service.serviceType === serviceRow.service_type &&
+        service.serviceName === serviceRow.service_name &&
+        service.meterSource,
+    );
+
+    if (!matchingInput?.meterSource) {
+      return [];
+    }
+
+    return [
+      {
+        utility_service_id: serviceRow.id,
+        meter_id: matchingInput.meterSource.meterId,
+        source_type: matchingInput.meterSource.sourceType,
+        meter_name: matchingInput.meterSource.meterName,
+        timezone: matchingInput.meterSource.timezone,
+        status: matchingInput.meterSource.status,
+      },
+    ];
+  });
+
+  if (meterSourcePayload.length === 0) {
+    return;
+  }
+
+  const { error } = await client.from('meter_sources').upsert(meterSourcePayload, { onConflict: 'utility_service_id' });
+  if (error) {
+    throw new Error(`Unable to upsert meter sources: ${error.message}`);
+  }
 }
 
 async function loadServicesForAccount(accountId, client) {

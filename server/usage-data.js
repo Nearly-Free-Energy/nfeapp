@@ -31,7 +31,11 @@ export async function fetchAuthorizedUsage(email, client = createServerSupabaseC
   }
 
   if (!data || data.length === 0) {
-    return buildFallbackUsagePayload(customer.account.id, electricService);
+    if (shouldUseSeededFallback()) {
+      return buildFallbackUsagePayload(customer.account.id, electricService);
+    }
+
+    return buildEmptyUsagePayload(customer.account.id, electricService);
   }
 
   return {
@@ -39,7 +43,7 @@ export async function fetchAuthorizedUsage(email, client = createServerSupabaseC
     serviceId: electricService.id,
     serviceName: electricService.serviceName,
     unit: 'kWh',
-    source: 'database',
+    source: normalizeUsageSource(data[data.length - 1]?.source),
     today: data[data.length - 1]?.usage_date ?? formatIsoDate(new Date()),
     points: data.map((row) => ({
       date: row.usage_date,
@@ -50,11 +54,11 @@ export async function fetchAuthorizedUsage(email, client = createServerSupabaseC
   };
 }
 
-function buildEmptyUsagePayload(accountId) {
+function buildEmptyUsagePayload(accountId, service) {
   return {
     accountId,
-    serviceId: null,
-    serviceName: null,
+    serviceId: service?.id ?? null,
+    serviceName: service?.serviceName ?? null,
     unit: 'kWh',
     source: 'database',
     today: formatIsoDate(new Date()),
@@ -100,4 +104,12 @@ function formatIsoDate(date) {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function shouldUseSeededFallback() {
+  return process.env.ENABLE_USAGE_DEMO_FALLBACK === 'true';
+}
+
+function normalizeUsageSource(source) {
+  return source === 'nextcloud-import' ? 'nextcloud-import' : 'database';
 }

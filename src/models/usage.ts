@@ -14,7 +14,7 @@ export type UsageApiResponse = {
   serviceId: string | null;
   serviceName: string | null;
   unit: UsageUnit;
-  source: 'database' | 'seeded-demo';
+  source: 'database' | 'seeded-demo' | 'nextcloud-import';
   today: string;
   points: UsagePoint[];
 };

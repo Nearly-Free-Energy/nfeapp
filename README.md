@@ -36,6 +36,7 @@ npm run build
 npm run release:check
 npm run db:migrate:customers
 npm run db:onboard:customer -- --email person@example.com --profile-name "Person Example" --account-number acct-1001 --account-name "Person Example Account" --services '[{"serviceType":"electric","serviceName":"Main Electric Service","serviceAddress":"123 Main St"}]'
+npm run db:import:usage
 ```
 
 `npm run release:check` is the required local gate before merging work to `main`. It runs the full test suite and a production build.
@@ -51,6 +52,8 @@ The app now expects:
 - `customer_profiles`
 - `utility_accounts`
 - `utility_services`
+- `meter_sources`
+- `usage_import_files`
 
 The `/api/me` response now returns:
 
@@ -93,10 +96,55 @@ npm run db:onboard:customer -- \
   --profile-name "Jane Example" \
   --account-number acct-2001 \
   --account-name "Jane Example Main Account" \
-  --services '[{"serviceType":"electric","serviceName":"Main Electric Service","serviceAddress":"123 Main St"},{"serviceType":"water","serviceName":"Main Water Service","serviceAddress":"123 Main St"}]'
+  --services '[{"serviceType":"electric","serviceName":"Main Electric Service","serviceAddress":"123 Main St","meterSource":{"meterId":"meter-001","sourceType":"nextcloud_csv","meterName":"Main Three Phase","timezone":"America/Chicago"}},{"serviceType":"water","serviceName":"Main Water Service","serviceAddress":"123 Main St"}]'
 ```
 
 Add `--append-services` if you want to keep existing services for that account and add new ones instead of replacing them.
+
+## Usage import from Nextcloud CSV
+
+Real usage data is imported from a Nextcloud-synced directory on the laptop running the importer. The importer reads CSV files from a bind-mounted read-only directory, computes daily kWh deltas from cumulative `energy_total`, and upserts those totals into `usage_daily_snapshots`.
+
+Required environment variables for import runs:
+
+```bash
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+USAGE_IMPORT_DIR=/data/import
+USAGE_IMPORT_REPROCESS_DAYS=3
+USAGE_IMPORT_FORCE_FULL_SYNC=false
+```
+
+For local non-Docker runs, point `USAGE_IMPORT_DIR` at the synced host directory directly. For Docker runs, mount the host directory read-only into `/data/import`.
+
+Manual Docker run:
+
+```bash
+export USAGE_IMPORT_HOST_DIR="/absolute/path/to/Nextcloud/meters"
+export SUPABASE_URL=...
+export SUPABASE_SERVICE_ROLE_KEY=...
+./scripts/run-usage-import-docker.sh
+```
+
+The importer image can also be run directly:
+
+```bash
+docker build -f Dockerfile.importer -t nfe-usage-importer .
+docker run --rm \
+  -e SUPABASE_URL \
+  -e SUPABASE_SERVICE_ROLE_KEY \
+  -e USAGE_IMPORT_DIR=/data/import \
+  -e USAGE_IMPORT_REPROCESS_DAYS=3 \
+  -v "/absolute/path/to/Nextcloud/meters:/data/import:ro" \
+  nfe-usage-importer
+```
+
+Operational notes:
+
+- original CSV files remain in Nextcloud as the recovery and recomputation source
+- Supabase stores only daily totals in v1
+- daily usage is computed from row timestamps, not the filename date
+- the seeded demo fallback is now opt-in with `ENABLE_USAGE_DEMO_FALLBACK=true`
 
 ## Vercel deployment
 

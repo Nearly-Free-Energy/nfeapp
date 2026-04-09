@@ -10,7 +10,8 @@
     "test": "vitest run",
     "release:check": "npm test && npm run build",
     "db:migrate:customers": "node scripts/migrate-customer-map.js",
-    "db:onboard:customer": "node scripts/onboard-customer.js"
+    "db:onboard:customer": "node scripts/onboard-customer.js",
+    "db:import:usage": "node scripts/import-usage.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",

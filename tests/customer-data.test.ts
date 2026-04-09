@@ -30,6 +30,7 @@ function createFakeClient() {
       status: 'active',
     },
   ];
+  const meterSourceRows = [];
   const serviceMicrogridRows = [
     {
       utility_service_id: 'service-1',
@@ -65,7 +66,7 @@ function createFakeClient() {
     },
   ];
 
-  return {
+  const client = {
     from(table: string) {
       return {
         select() {
@@ -181,6 +182,40 @@ function createFakeClient() {
             };
           }
 
+          if (table === 'meter_sources') {
+            const records = payload as Array<{
+              utility_service_id: string;
+              meter_id: string;
+              source_type: string;
+              meter_name: string | null;
+              timezone: string;
+              status: string;
+            }>;
+
+            for (const record of records) {
+              const existing = meterSourceRows.find((row) => row.utility_service_id === record.utility_service_id);
+              if (existing) {
+                existing.meter_id = record.meter_id;
+                existing.source_type = record.source_type;
+                existing.meter_name = record.meter_name;
+                existing.timezone = record.timezone;
+                existing.status = record.status;
+              } else {
+                meterSourceRows.push({
+                  id: `meter-source-${meterSourceRows.length + 1}`,
+                  utility_service_id: record.utility_service_id,
+                  meter_id: record.meter_id,
+                  source_type: record.source_type,
+                  meter_name: record.meter_name,
+                  timezone: record.timezone,
+                  status: record.status,
+                });
+              }
+            }
+
+            return { error: null };
+          }
+
           const records = payload as Array<{
             utility_account_id: string;
             service_type: string;
@@ -237,6 +272,8 @@ function createFakeClient() {
       };
     },
   };
+
+  return Object.assign(client, { meterSourceRows });
 }
 
 describe('customer data helpers', () => {
@@ -300,6 +337,44 @@ describe('customer data helpers', () => {
     expect(result.profile.displayName).toBe('Customer Demo Profile Updated');
     expect(result.services).toHaveLength(1);
     expect(result.services[0].serviceAddress).toBe('123 Main St');
+  });
+
+  it('stores a meter source mapping when provided during onboarding', async () => {
+    const client = createFakeClient();
+
+    await upsertCustomerAccess(
+      {
+        email: 'customer@example.com',
+        profileDisplayName: 'Customer Demo Profile Updated',
+        accountNumber: 'customer-demo',
+        accountDisplayName: 'Customer Demo Account',
+        services: [
+          {
+            serviceType: 'electric',
+            serviceName: 'Customer Demo Account Electric Service',
+            meterSource: {
+              meterId: 'meter-001',
+              sourceType: 'nextcloud_csv',
+              meterName: 'Main Three Phase',
+              timezone: 'America/Chicago',
+            },
+          },
+        ],
+      },
+      {},
+      client as never,
+    );
+
+    expect(client.meterSourceRows).toEqual([
+      expect.objectContaining({
+        utility_service_id: 'service-upsert-1',
+        meter_id: 'meter-001',
+        source_type: 'nextcloud_csv',
+        meter_name: 'Main Three Phase',
+        timezone: 'America/Chicago',
+        status: 'active',
+      }),
+    ]);
   });
 
   it('keeps the legacy migration source available for one-time import', () => {
