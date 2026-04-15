@@ -38,6 +38,27 @@ export default defineConfig(({ mode }) => {
               },
             );
           });
+
+          server.middlewares.use('/api/usage', async (req, res) => {
+            const { default: handler } = await server.ssrLoadModule('/api/usage.ts');
+
+            await handler(
+              {
+                method: req.method,
+                headers: req.headers,
+              },
+              {
+                status(code: number) {
+                  res.statusCode = code;
+                  return this;
+                },
+                json(body: unknown) {
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify(body));
+                },
+              },
+            );
+          });
         },
       },
     ],

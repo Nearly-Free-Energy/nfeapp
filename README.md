@@ -22,7 +22,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 `SUPABASE_URL` and `SUPABASE_ANON_KEY` are used by the Vercel Function backend for server-side token verification. For now, they should match the same Supabase project as the frontend values.
-`SUPABASE_SERVICE_ROLE_KEY` is recommended for server-side account/profile/service access and for the onboarding scripts.
+`SUPABASE_SERVICE_ROLE_KEY` is required for server-side account/profile/service access and for the onboarding and import scripts.
 
 Step 2 adds a minimal protected identity endpoint at `/api/me`. The frontend now waits for backend verification before showing the signed-in dashboard.
 
@@ -46,6 +46,7 @@ For custom Supabase email delivery setup, use [docs/supabase-smtp-runbook.md](/U
 ## Customer data model
 
 Apply the schema in [supabase/schema.sql](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/supabase/schema.sql) in Supabase before running the onboarding or migration scripts.
+Apply incremental updates from [supabase/migrations/20260415_add_customer_rls_policies.sql](/Users/atushabe/NearlyFreeEnergy/NFE%20Web%20App/supabase/migrations/20260415_add_customer_rls_policies.sql) when updating an existing project.
 
 The app now expects:
 
@@ -61,6 +62,13 @@ The `/api/me` response now returns:
 - `profile`
 - `account`
 - `services`
+
+## Supabase security model
+
+- Row Level Security is enabled on all app tables in `public`.
+- Authenticated customer reads are limited to the signed-in customer's own profile, account, services, linked microgrid topology, and usage snapshots.
+- Operational tables such as `meter_sources` and `usage_import_files` remain server-only and are intended to be accessed through the service role.
+- The server-side Supabase helper requires `SUPABASE_SERVICE_ROLE_KEY`; it no longer falls back to the anon key for privileged data access.
 
 ## Customer migration and onboarding
 
