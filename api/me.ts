@@ -45,6 +45,12 @@ function createAuthVerifier() {
     const { data, error } = await supabase.auth.getUser(accessToken);
 
     if (error || !data.user?.email) {
+      console.error('api/me auth verification failed', {
+        errorMessage: error?.message ?? null,
+        errorName: error?.name ?? null,
+        hasUser: Boolean(data.user),
+        hasEmail: Boolean(data.user?.email),
+      });
       throw new Error('Unable to verify the Supabase session.');
     }
 
@@ -73,6 +79,9 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
     const customer = await fetchAuthorizedCustomer(user.email);
     if (!customer) {
+      console.warn('api/me customer lookup failed', {
+        email: user.email,
+      });
       response.status(403).json({ error: 'Your account is signed in, but it is not linked to a customer profile yet.' });
       return;
     }
@@ -81,6 +90,9 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to verify your session.';
+    console.error('api/me request failed', {
+      message,
+    });
     response.status(401).json({ error: message });
   }
 }
