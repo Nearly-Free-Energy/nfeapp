@@ -4,6 +4,8 @@ import { fetchAuthorizedUsage } from '../server/usage-data.js';
 type ApiRequest = {
   method?: string;
   headers: Record<string, string | string[] | undefined>;
+  url?: string;
+  query?: Record<string, string | string[] | undefined>;
 };
 
 type ApiResponse = {
@@ -56,6 +58,25 @@ function createAuthVerifier() {
 
 const verifyAccessToken = createAuthVerifier();
 
+function extractServiceId(request: ApiRequest): string | null {
+  const queryValue = request.query?.serviceId;
+  if (typeof queryValue === 'string' && queryValue.trim().length > 0) {
+    return queryValue.trim();
+  }
+
+  if (Array.isArray(queryValue) && queryValue[0]?.trim()) {
+    return queryValue[0].trim();
+  }
+
+  if (!request.url) {
+    return null;
+  }
+
+  const parsedUrl = new URL(request.url, 'http://localhost');
+  const serviceId = parsedUrl.searchParams.get('serviceId');
+  return serviceId?.trim() ? serviceId.trim() : null;
+}
+
 export default async function handler(request: ApiRequest, response: ApiResponse): Promise<void> {
   if (request.method !== 'GET') {
     response.status(405).json({ error: 'Method not allowed.' });
@@ -70,7 +91,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   try {
     const user = await verifyAccessToken(token);
-    const usage = await fetchAuthorizedUsage(user.email);
+    const usage = await fetchAuthorizedUsage(user.email, extractServiceId(request));
 
     if (!usage) {
       response.status(403).json({ error: 'Your account is signed in, but it is not linked to usage data yet.' });
@@ -80,6 +101,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     response.status(200).json(usage);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to load usage.';
-    response.status(401).json({ error: message });
+    const statusCode = error instanceof Error && error.name === 'InvalidServiceError' ? 403 : 401;
+    response.status(statusCode).json({ error: message });
   }
 }

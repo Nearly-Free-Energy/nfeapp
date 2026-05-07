@@ -10,12 +10,14 @@ export function resolveUsageImportConfig(env = process.env) {
   const timezoneDefault = env.USAGE_IMPORT_TZ || 'UTC';
   const reprocessDays = clampInteger(env.USAGE_IMPORT_REPROCESS_DAYS, 3);
   const forceFullSync = env.USAGE_IMPORT_FORCE_FULL_SYNC === 'true';
+  const allowedMeters = parseAllowedMeters(env.USAGE_IMPORT_ALLOWED_METERS);
 
   return {
     importDirectory,
     timezoneDefault,
     reprocessDays,
     forceFullSync,
+    allowedMeters,
   };
 }
 
@@ -39,6 +41,21 @@ export async function importUsageDirectory(config, client = createServerSupabase
       const csvContent = await readFile(filePath, 'utf8');
       const records = parseUsageCsv(csvContent);
       const meterId = extractSingleMeterId(records);
+
+      if (config.allowedMeters && !config.allowedMeters.has(meterId)) {
+        fileResults.push(
+          buildFileResult({
+            filePath,
+            fileStat,
+            meterSourceId: null,
+            importStatus: 'skipped',
+            rowCount: records.length,
+            errorMessage: `Meter ${meterId} is outside the configured allowed meter list.`,
+          }),
+        );
+        continue;
+      }
+
       const meterSource = meterSources.get(meterId);
 
       if (!meterSource) {
@@ -93,6 +110,7 @@ export async function importUsageDirectory(config, client = createServerSupabase
     updatedDays: dailySnapshots.length,
     successCount: fileResults.filter((result) => result.importStatus === 'success').length,
     errorCount: fileResults.filter((result) => result.importStatus === 'error').length,
+    configSkippedCount: fileResults.filter((result) => result.importStatus === 'skipped').length,
     files: fileResults,
   };
 }
@@ -419,4 +437,17 @@ function roundToThree(value) {
 function clampInteger(value, fallback) {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function parseAllowedMeters(value) {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+
+  const meters = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  return meters.length > 0 ? new Set(meters) : null;
 }

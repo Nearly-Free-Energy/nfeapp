@@ -138,6 +138,7 @@ describe('/api/usage', () => {
     await handler(
       {
         method: 'GET',
+        url: '/api/usage?serviceId=service-electric',
         headers: {
           authorization: 'Bearer valid-token',
         },
@@ -255,6 +256,84 @@ describe('/api/usage', () => {
       serviceId: 'service-electric',
       source: 'database',
       points: [],
+    });
+  });
+
+  it('returns 403 when the requested service is not available for the account', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: {
+        user: {
+          email: 'customer@example.com',
+        },
+      },
+      error: null,
+    });
+    mockFrom.mockReturnValueOnce(
+      createQueryChain({
+        data: {
+          id: 'profile-demo',
+          email: 'customer@example.com',
+          display_name: 'Customer Demo Profile',
+          status: 'active',
+        },
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(
+      createQueryChain({
+        data: {
+          id: 'account-demo',
+          customer_profile_id: 'profile-demo',
+          account_number: 'customer-demo',
+          display_name: 'Customer Demo Account',
+          status: 'active',
+        },
+        error: null,
+      }),
+    );
+    mockFrom.mockReturnValueOnce(
+      createQueryChain(
+        {
+          data: [
+            {
+              id: 'service-electric',
+              utility_account_id: 'account-demo',
+              service_type: 'electric',
+              service_name: 'Customer Demo Account Electric Service',
+              service_address: null,
+              status: 'active',
+            },
+          ],
+          error: null,
+        },
+        { resolveOnOrder: true },
+      ),
+    );
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn(async () => ({
+        data: [],
+        error: null,
+      })),
+    });
+
+    const { default: handler } = await import('../api/usage');
+    const recorder = createResponseRecorder();
+
+    await handler(
+      {
+        method: 'GET',
+        url: '/api/usage?serviceId=service-other',
+        headers: {
+          authorization: 'Bearer valid-token',
+        },
+      },
+      recorder.response,
+    );
+
+    expect(recorder.getStatus()).toBe(403);
+    expect(recorder.getBody()).toEqual({
+      error: 'Requested service is not available for this account.',
     });
   });
 });

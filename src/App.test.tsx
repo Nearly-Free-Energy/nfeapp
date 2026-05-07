@@ -197,7 +197,7 @@ describe('Electricity consumption dashboard', () => {
 
     expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
-    expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token');
+    expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token', 'service-demo');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
     expect(screen.getByLabelText('Weekly utility usage')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
@@ -215,6 +215,75 @@ describe('Electricity consumption dashboard', () => {
     expect(within(controls).getByRole('button', { name: 'Month' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(screen.getByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
+  });
+
+  it('renders a service selector and reloads usage when switching services', async () => {
+    const user = userEvent.setup();
+    apiMocks.getMe.mockResolvedValueOnce({
+      email: 'customer@example.com',
+      profile: {
+        id: 'profile-demo',
+        displayName: 'Customer Demo Profile',
+        status: 'active',
+      },
+      account: {
+        id: 'account-demo',
+        accountNumber: 'customer-demo',
+        displayName: 'Customer Demo Account',
+        status: 'active',
+      },
+      services: [
+        {
+          id: 'service-a',
+          serviceType: 'electric',
+          serviceName: 'Electric Service • 221123297561',
+          serviceAddress: null,
+          status: 'active',
+        },
+        {
+          id: 'service-b',
+          serviceType: 'electric',
+          serviceName: 'Electric Service • 200326019929',
+          serviceAddress: null,
+          status: 'active',
+        },
+      ],
+      microgrids: [],
+    });
+    apiMocks.getUsage.mockResolvedValue({
+      accountId: 'account-demo',
+      serviceId: 'service-a',
+      serviceName: 'Electric Service • 221123297561',
+      unit: 'kWh',
+      source: 'nextcloud-import',
+      today: '2026-03-25',
+      points: [
+        { date: '2026-03-22', usageValue: 31, unit: 'kWh', isFuture: false },
+        { date: '2026-03-23', usageValue: 27, unit: 'kWh', isFuture: false },
+      ],
+    });
+
+    renderApp('/usage');
+
+    const selector = await screen.findByLabelText('Service');
+    expect(selector).toBeInTheDocument();
+    expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token', 'service-a');
+
+    apiMocks.getUsage.mockResolvedValueOnce({
+      accountId: 'account-demo',
+      serviceId: 'service-b',
+      serviceName: 'Electric Service • 200326019929',
+      unit: 'kWh',
+      source: 'nextcloud-import',
+      today: '2026-03-25',
+      points: [
+        { date: '2026-03-24', usageValue: 19, unit: 'kWh', isFuture: false },
+        { date: '2026-03-25', usageValue: 18, unit: 'kWh', isFuture: false },
+      ],
+    });
+
+    await user.selectOptions(selector, 'service-b');
+    expect(apiMocks.getUsage).toHaveBeenLastCalledWith('test-token', 'service-b');
   });
 
   it('switches to month view and shows a month label', async () => {

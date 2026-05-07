@@ -13,5 +13,6 @@ docker run --rm \
   -e USAGE_IMPORT_DIR=/data/import \
   -e USAGE_IMPORT_REPROCESS_DAYS \
   -e USAGE_IMPORT_FORCE_FULL_SYNC \
+  -e USAGE_IMPORT_ALLOWED_METERS \
   -v "${USAGE_IMPORT_HOST_DIR}:/data/import:ro" \
   nfe-usage-importer

@@ -208,4 +208,35 @@ describe('usage import helpers', () => {
       }),
     ]);
   });
+
+  it('skips files outside the configured allowed meter list', async () => {
+    tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'nfe-usage-import-'));
+    const csvPath = path.join(tempDirectory, 'meter_003_2026-03-22.csv');
+    await writeFile(
+      csvPath,
+      ['timestamp,meter_id,energy_total', '2026-03-22 00:00:00,3,5.0', '2026-03-22 00:15:00,3,5.5'].join('\n'),
+    );
+
+    const client = createImporterClient();
+    const result = await importUsageDirectory(
+      {
+        importDirectory: tempDirectory,
+        timezoneDefault: 'America/Chicago',
+        reprocessDays: 3,
+        forceFullSync: true,
+        allowedMeters: new Set(['100', '2']),
+      },
+      client as never,
+    );
+
+    expect(result.configSkippedCount).toBe(1);
+    expect(result.errorCount).toBe(0);
+    expect(client.state.usageDailySnapshots).toEqual([]);
+    expect(client.state.usageImportFiles).toEqual([
+      expect.objectContaining({
+        file_path: csvPath,
+        import_status: 'skipped',
+      }),
+    ]);
+  });
 });

@@ -5,8 +5,9 @@ export async function getMe(accessToken: string): Promise<MeApiResponse> {
   return requestJson<MeApiResponse>('/api/me', accessToken, 'Unable to verify your session.');
 }
 
-export async function getUsage(accessToken: string): Promise<UsageApiResponse> {
-  return requestJson<UsageApiResponse>('/api/usage', accessToken, 'Unable to load usage.');
+export async function getUsage(accessToken: string, serviceId?: string): Promise<UsageApiResponse> {
+  const query = serviceId ? `?serviceId=${encodeURIComponent(serviceId)}` : '';
+  return requestJson<UsageApiResponse>(`/api/usage${query}`, accessToken, 'Unable to load usage.');
 }
 
 async function requestJson<T>(url: string, accessToken: string, defaultErrorMessage: string): Promise<T> {

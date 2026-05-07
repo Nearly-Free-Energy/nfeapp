@@ -42,7 +42,7 @@ function App() {
               accountName={signedInState.account.displayName}
               onSignOut={handleSignOut}
             >
-            <UsageOverview accessToken={signedInState.session.access_token} />
+            <UsageOverview accessToken={signedInState.session.access_token} services={signedInState.services} />
           </DashboardScreen>
         }
       />

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getUsage } from '../../../api';
 import { BottomControlTray } from '../../../components/BottomControlTray';
 import { UsageSummary } from '../../../components/UsageSummary';
 import { MonthlyCalendar } from '../../../components/MonthlyCalendar';
 import { WeeklyCalendar } from '../../../components/WeeklyCalendar';
+import type { UtilityService } from '../../../models/customer';
 import type { UsageApiResponse, UsageCalendarDay, UsageCalendarView } from '../../../models/usage';
 import { SelectedUsagePanel } from './SelectedUsagePanel';
 import { addDays, addMonths, endOfWeek, formatMonthYear, formatWeekRange, parseIsoDate, startOfWeek } from '../../../utils/date';
@@ -13,17 +15,35 @@ const INITIAL_ANCHOR_DATE = parseIsoDate('2026-03-22');
 
 type UsageOverviewProps = {
   accessToken: string;
+  services: UtilityService[];
 };
 
-export function UsageOverview({ accessToken }: UsageOverviewProps) {
+export function UsageOverview({ accessToken, services }: UsageOverviewProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<UsageCalendarView>('week');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
   const [selectedDayKey, setSelectedDayKey] = useState<string | undefined>(undefined);
   const [usageData, setUsageData] = useState<UsageApiResponse | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+  const electricServices = services.filter((service) => service.serviceType === 'electric' && service.status === 'active');
+  const requestedServiceId = searchParams.get('serviceId');
+  const selectedServiceId = requestedServiceId ?? electricServices[0]?.id ?? undefined;
 
   useEffect(() => {
+    if (!requestedServiceId && electricServices[0]?.id) {
+      setSearchParams({ serviceId: electricServices[0].id }, { replace: true });
+    }
+  }, [electricServices, requestedServiceId, setSearchParams]);
+
+  useEffect(() => {
+    if (!selectedServiceId) {
+      setUsageData(null);
+      setUsageError('No active electric service is available for usage.');
+      setIsLoadingUsage(false);
+      return;
+    }
+
     let isMounted = true;
 
     async function loadUsage() {
@@ -31,13 +51,14 @@ export function UsageOverview({ accessToken }: UsageOverviewProps) {
       setUsageError(null);
 
       try {
-        const nextUsage = await getUsage(accessToken);
+        const nextUsage = await getUsage(accessToken, selectedServiceId);
         if (!isMounted) {
           return;
         }
 
         setUsageData(nextUsage);
         setAnchorDate(parseIsoDate(nextUsage.today));
+        setSelectedDayKey(undefined);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -57,7 +78,7 @@ export function UsageOverview({ accessToken }: UsageOverviewProps) {
     return () => {
       isMounted = false;
     };
-  }, [accessToken]);
+  }, [accessToken, selectedServiceId]);
 
   const usagePoints = usageData?.points ?? [];
   const usageLookup = buildUsageLookup(usagePoints);
@@ -76,6 +97,10 @@ export function UsageOverview({ accessToken }: UsageOverviewProps) {
     setAnchorDate((current) => (view === 'week' ? addDays(current, step * 7) : addMonths(current, step)));
   }
 
+  function handleServiceChange(nextServiceId: string) {
+    setSearchParams({ serviceId: nextServiceId });
+  }
+
   return (
     <>
       {isLoadingUsage ? <p className="usage-status-message">Loading usage history...</p> : null}
@@ -84,6 +109,26 @@ export function UsageOverview({ accessToken }: UsageOverviewProps) {
         <p className="usage-status-message">
           Showing seeded platform demo data from the backend until telemetry-backed usage snapshots are available.
         </p>
+      ) : null}
+
+      {electricServices.length > 1 ? (
+        <section className="service-switcher" aria-label="Service selector">
+          <label className="service-switcher__label" htmlFor="usage-service-selector">
+            Service
+          </label>
+          <select
+            id="usage-service-selector"
+            className="service-switcher__select"
+            value={selectedServiceId}
+            onChange={(event) => handleServiceChange(event.target.value)}
+          >
+            {electricServices.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.serviceName}
+              </option>
+            ))}
+          </select>
+        </section>
       ) : null}
 
       <UsageSummary summary={summary} />

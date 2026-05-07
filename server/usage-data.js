@@ -9,13 +9,32 @@ const FALLBACK_BASE_USAGE = [
   27, 33, 37, 40,
 ];
 
-export async function fetchAuthorizedUsage(email, client = createServerSupabaseClient()) {
+export async function fetchAuthorizedUsage(email, serviceIdOrClient = null, maybeClient = null) {
+  const serviceId =
+    typeof serviceIdOrClient === 'string' || serviceIdOrClient === null ? serviceIdOrClient : null;
+  const client =
+    typeof serviceIdOrClient === 'string' || serviceIdOrClient === null
+      ? maybeClient ?? createServerSupabaseClient()
+      : serviceIdOrClient;
+
+  return fetchAuthorizedUsageForService(email, serviceId, client);
+}
+
+export async function fetchAuthorizedUsageForService(email, serviceId = null, client = createServerSupabaseClient()) {
   const customer = await fetchAuthorizedCustomerContext(email, client);
   if (!customer) {
     return null;
   }
 
-  const electricService = customer.services.find((service) => service.serviceType === 'electric') ?? customer.services[0];
+  const electricServices = customer.services.filter((service) => service.serviceType === 'electric' && service.status === 'active');
+  const electricService = serviceId ? electricServices.find((service) => service.id === serviceId) ?? null : electricServices[0] ?? null;
+
+  if (serviceId && !electricService) {
+    const error = new Error('Requested service is not available for this account.');
+    error.name = 'InvalidServiceError';
+    throw error;
+  }
+
   if (!electricService) {
     return buildEmptyUsagePayload(customer.account.id);
   }
