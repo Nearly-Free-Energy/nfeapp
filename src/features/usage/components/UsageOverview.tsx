@@ -87,7 +87,7 @@ export function UsageOverview({ accessToken, services }: UsageOverviewProps) {
   const weekDays = getWeekDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const monthDays = getMonthDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
-  const summary = summarizePeriod(visibleDays, usagePoints, usageToday);
+  const summary = summarizePeriod(visibleDays, usagePoints, usageToday, anchorDate);
   const selectedDay = visibleDays.find((day) => day.key === selectedDayKey) ?? findDefaultSelectedDay(visibleDays, anchorDate);
   const periodLabel =
     view === 'week' ? formatWeekRange(startOfWeek(anchorDate), endOfWeek(anchorDate)) : formatMonthYear(anchorDate);

@@ -41,6 +41,17 @@ describe('usage billing helpers', () => {
     expect(calculateEstimatedMonthlyBillUgx(points, new Date(2026, 4, 6))).toBe(10703);
   });
 
+  it('uses the visible month when calculating the bill for historical months', () => {
+    const points = [
+      buildPoint('2026-03-01', 20),
+      buildPoint('2026-03-02', 10),
+      buildPoint('2026-05-01', 10),
+      buildPoint('2026-05-02', 5),
+    ];
+
+    expect(calculateEstimatedMonthlyBillUgx(points, new Date(2026, 4, 6), new Date(2026, 2, 15))).toBe(24087);
+  });
+
   it('adds the estimated monthly bill to the usage summary', () => {
     const summary = summarizePeriod(
       [
@@ -64,5 +75,20 @@ describe('usage billing helpers', () => {
     );
 
     expect(summary.estimatedMonthlyBillUgx).toBe(10703);
+  });
+
+  it('changes the estimated monthly bill when the viewed month changes', () => {
+    const points = [
+      buildPoint('2026-03-01', 20),
+      buildPoint('2026-03-02', 10),
+      buildPoint('2026-05-01', 10),
+      buildPoint('2026-05-02', 5),
+    ];
+
+    const marchSummary = summarizePeriod([], points, new Date(2026, 4, 6), new Date(2026, 2, 15));
+    const maySummary = summarizePeriod([], points, new Date(2026, 4, 6), new Date(2026, 4, 15));
+
+    expect(marchSummary.estimatedMonthlyBillUgx).toBe(24087);
+    expect(maySummary.estimatedMonthlyBillUgx).toBe(10703);
   });
 });

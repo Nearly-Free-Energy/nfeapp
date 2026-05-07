@@ -60,7 +60,12 @@ export function getMonthDays(
   }));
 }
 
-export function summarizePeriod(days: UsageCalendarDay[], usagePoints: UsagePoint[] = [], today = new Date()): UsagePeriodSummary {
+export function summarizePeriod(
+  days: UsageCalendarDay[],
+  usagePoints: UsagePoint[] = [],
+  today = new Date(),
+  billingMonthAnchor = today,
+): UsagePeriodSummary {
   const measuredDays = days.filter((day) => day.usageValue !== null && !day.isFuture);
   const unit = measuredDays[0]?.unit ?? days[0]?.unit ?? 'kWh';
   const totalUsage = measuredDays.reduce((sum, day) => sum + (day.usageValue ?? 0), 0);
@@ -71,19 +76,23 @@ export function summarizePeriod(days: UsageCalendarDay[], usagePoints: UsagePoin
   return {
     totalUsage: roundToOne(totalUsage),
     averageDailyUsage: roundToOne(averageDailyUsage),
-    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(usagePoints, today),
+    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(usagePoints, today, billingMonthAnchor),
     unit,
     lowestUsageDay: sorted[0]?.key,
     highestUsageDay: sorted[sorted.length - 1]?.key,
   };
 }
 
-export function calculateEstimatedMonthlyBillUgx(points: UsagePoint[], today: Date): number {
+export function calculateEstimatedMonthlyBillUgx(points: UsagePoint[], today: Date, billingMonthAnchor: Date = today): number {
   const monthUsage = points
     .filter((point) => point.unit === 'kWh' && point.usageValue !== null && point.isFuture !== true)
     .filter((point) => {
       const date = parseIsoDate(point.date);
-      return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getTime() <= today.getTime();
+      return (
+        date.getFullYear() === billingMonthAnchor.getFullYear() &&
+        date.getMonth() === billingMonthAnchor.getMonth() &&
+        date.getTime() <= today.getTime()
+      );
     })
     .reduce((sum, point) => sum + (point.usageValue ?? 0), 0);
 
