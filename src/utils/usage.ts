@@ -1,6 +1,15 @@
 import type { UsageCalendarDay, UsagePeriodSummary, UsagePoint, UsageUnit } from '../models/usage';
 import { eachDayOfInterval, endOfMonth, endOfWeek, formatIsoDate, parseIsoDate, startOfMonth, startOfWeek } from './date';
 
+const MONTHLY_SERVICE_CHARGE_UGX = 5320;
+const VAT_RATE = 0.18;
+const BILLING_TARIERS = [
+  { limit: 15, rate: 250 },
+  { limit: 65, rate: 756.2 },
+  { limit: 70, rate: 412.0 },
+  { limit: Number.POSITIVE_INFINITY, rate: 756.2 },
+] as const;
+
 export function buildUsageLookup(days: UsagePoint[]): Map<string, UsagePoint> {
   return new Map(days.map((day) => [day.date, day]));
 }
@@ -51,7 +60,7 @@ export function getMonthDays(
   }));
 }
 
-export function summarizePeriod(days: UsageCalendarDay[]): UsagePeriodSummary {
+export function summarizePeriod(days: UsageCalendarDay[], usagePoints: UsagePoint[] = [], today = new Date()): UsagePeriodSummary {
   const measuredDays = days.filter((day) => day.usageValue !== null && !day.isFuture);
   const unit = measuredDays[0]?.unit ?? days[0]?.unit ?? 'kWh';
   const totalUsage = measuredDays.reduce((sum, day) => sum + (day.usageValue ?? 0), 0);
@@ -62,10 +71,32 @@ export function summarizePeriod(days: UsageCalendarDay[]): UsagePeriodSummary {
   return {
     totalUsage: roundToOne(totalUsage),
     averageDailyUsage: roundToOne(averageDailyUsage),
+    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(usagePoints, today),
     unit,
     lowestUsageDay: sorted[0]?.key,
     highestUsageDay: sorted[sorted.length - 1]?.key,
   };
+}
+
+export function calculateEstimatedMonthlyBillUgx(points: UsagePoint[], today: Date): number {
+  const monthUsage = points
+    .filter((point) => point.unit === 'kWh' && point.usageValue !== null && point.isFuture !== true)
+    .filter((point) => {
+      const date = parseIsoDate(point.date);
+      return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getTime() <= today.getTime();
+    })
+    .reduce((sum, point) => sum + (point.usageValue ?? 0), 0);
+
+  const energyCharge = calculateTieredEnergyCharge(monthUsage);
+  const subtotal = energyCharge + MONTHLY_SERVICE_CHARGE_UGX;
+  return Math.round(subtotal * (1 + VAT_RATE));
+}
+
+export function formatUgxAmount(value: number): string {
+  return new Intl.NumberFormat('en-UG', {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(value);
 }
 
 export function getUsageTier(usageValue: number | null, values: Array<number | null>): number {
@@ -113,4 +144,21 @@ export function describeSummaryDate(value?: string): string {
 
 function roundToOne(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function calculateTieredEnergyCharge(usageKwh: number): number {
+  let remaining = usageKwh;
+  let total = 0;
+
+  for (const tier of BILLING_TARIERS) {
+    if (remaining <= 0) {
+      break;
+    }
+
+    const billedKwh = Math.min(remaining, tier.limit);
+    total += billedKwh * tier.rate;
+    remaining -= billedKwh;
+  }
+
+  return total;
 }

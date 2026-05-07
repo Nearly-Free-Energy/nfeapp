@@ -199,11 +199,11 @@ describe('Electricity consumption dashboard', () => {
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token', 'service-demo');
     expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Weekly utility usage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Monthly utility usage')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
     expect(screen.getByRole('link', { name: 'Account' })).toBeInTheDocument();
 
-    const weekdayRow = screen.getByLabelText('Weekly utility usage').querySelector('.weekday-row--week');
+    const weekdayRow = screen.getByLabelText('Monthly utility usage').querySelector('.weekday-row');
     expect(weekdayRow).not.toBeNull();
 
     for (const weekday of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
@@ -215,6 +215,7 @@ describe('Electricity consumption dashboard', () => {
     expect(within(controls).getByRole('button', { name: 'Month' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(screen.getByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
+    expect(screen.getByText('Estimated monthly bill')).toBeInTheDocument();
   });
 
   it('renders a service selector and reloads usage when switching services', async () => {
@@ -290,7 +291,7 @@ describe('Electricity consumption dashboard', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await screen.findByLabelText('Weekly utility usage');
+    await screen.findByLabelText('Monthly utility usage');
     await user.click(screen.getByRole('button', { name: 'Month' }));
 
     expect(screen.getByLabelText('Monthly utility usage')).toBeInTheDocument();
@@ -301,10 +302,10 @@ describe('Electricity consumption dashboard', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await screen.findByLabelText('Weekly utility usage');
+    await screen.findByLabelText('Monthly utility usage');
     await user.click(screen.getByRole('button', { name: 'Next period' }));
 
-    expect(screen.getByText('Mar 29 - Apr 4')).toBeInTheDocument();
+    expect(screen.getByText('Apr 2026')).toBeInTheDocument();
   });
 
   it('renders the sign-in form when there is no session', async () => {
@@ -349,8 +350,8 @@ describe('Electricity consumption dashboard', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await screen.findByRole('heading', { name: 'Electricity Consumption' });
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const signOutButton = await screen.findByRole('button', { name: 'Sign out' });
+    await user.click(signOutButton);
 
     expect(supabase.auth.signOut).toHaveBeenCalled();
   });

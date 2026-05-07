@@ -22,6 +22,7 @@ export type UsageApiResponse = {
 export type UsagePeriodSummary = {
   totalUsage: number;
   averageDailyUsage: number;
+  estimatedMonthlyBillUgx: number;
   unit: UsageUnit;
   highestUsageDay?: string;
   lowestUsageDay?: string;

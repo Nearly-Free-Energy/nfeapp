@@ -20,7 +20,7 @@ type UsageOverviewProps = {
 
 export function UsageOverview({ accessToken, services }: UsageOverviewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useState<UsageCalendarView>('week');
+  const [view, setView] = useState<UsageCalendarView>('month');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
   const [selectedDayKey, setSelectedDayKey] = useState<string | undefined>(undefined);
   const [usageData, setUsageData] = useState<UsageApiResponse | null>(null);
@@ -87,7 +87,7 @@ export function UsageOverview({ accessToken, services }: UsageOverviewProps) {
   const weekDays = getWeekDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const monthDays = getMonthDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
-  const summary = summarizePeriod(visibleDays);
+  const summary = summarizePeriod(visibleDays, usagePoints, usageToday);
   const selectedDay = visibleDays.find((day) => day.key === selectedDayKey) ?? findDefaultSelectedDay(visibleDays, anchorDate);
   const periodLabel =
     view === 'week' ? formatWeekRange(startOfWeek(anchorDate), endOfWeek(anchorDate)) : formatMonthYear(anchorDate);
