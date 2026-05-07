@@ -308,6 +308,32 @@ describe('Electricity consumption dashboard', () => {
     expect(screen.getByText('Apr 2026')).toBeInTheDocument();
   });
 
+  it('uses only the selected calendar month for all summary cards in month view', async () => {
+    apiMocks.getUsage.mockResolvedValueOnce({
+      accountId: 'account-demo',
+      serviceId: 'service-demo',
+      serviceName: 'Customer Demo Account Electric Service',
+      unit: 'kWh',
+      source: 'nextcloud-import',
+      today: '2026-04-15',
+      points: [
+        { date: '2026-03-31', usageValue: 99, unit: 'kWh', isFuture: false },
+        { date: '2026-04-01', usageValue: 10, unit: 'kWh', isFuture: false },
+        { date: '2026-04-02', usageValue: 20, unit: 'kWh', isFuture: false },
+        { date: '2026-05-01', usageValue: 77, unit: 'kWh', isFuture: false },
+      ],
+    });
+
+    renderApp('/usage');
+
+    await screen.findByText('Apr 2026');
+
+    const summary = screen.getByLabelText('Usage period summary');
+    expect(within(summary).getByText('30 kWh')).toBeInTheDocument();
+    expect(within(summary).getByText('15 kWh')).toBeInTheDocument();
+    expect(within(summary).getByText('UGX 24,087')).toBeInTheDocument();
+  });
+
   it('renders the sign-in form when there is no session', async () => {
     const { supabase } = await import('./supabase');
     vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
