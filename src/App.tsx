@@ -31,17 +31,17 @@ function App() {
   }
 
   const signedInState = state;
+  const accountName =
+    signedInState.accounts.length > 1
+      ? `${signedInState.profile.displayName} (${signedInState.accounts.length} utility accounts)`
+      : signedInState.account.displayName;
 
   return (
     <Routes>
       <Route
         path="/usage"
         element={
-            <DashboardScreen
-              email={signedInState.email}
-              accountName={signedInState.account.displayName}
-              onSignOut={handleSignOut}
-            >
+          <DashboardScreen email={signedInState.email} accountName={accountName} onSignOut={handleSignOut}>
             <UsageOverview accessToken={signedInState.session.access_token} services={signedInState.services} />
           </DashboardScreen>
         }
@@ -51,12 +51,13 @@ function App() {
         element={
           <DashboardScreen
             email={signedInState.email}
-            accountName={signedInState.account.displayName}
+            accountName={accountName}
             onSignOut={handleSignOut}
           >
             <AccountOverview
               profile={signedInState.profile}
               account={signedInState.account}
+              accounts={signedInState.accounts}
               services={signedInState.services}
               microgrids={signedInState.microgrids}
             />

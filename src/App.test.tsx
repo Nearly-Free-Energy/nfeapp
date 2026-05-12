@@ -20,9 +20,18 @@ const apiMocks = vi.hoisted(() => ({
       displayName: 'Customer Demo Account',
       status: 'active',
     },
+    accounts: [
+      {
+        id: 'account-demo',
+        accountNumber: 'customer-demo',
+        displayName: 'Customer Demo Account',
+        status: 'active',
+      },
+    ],
     services: [
       {
         id: 'service-demo',
+        utilityAccountId: 'account-demo',
         serviceType: 'electric',
         serviceName: 'Customer Demo Account Electric Service',
         serviceAddress: null,
@@ -140,9 +149,18 @@ describe('Electricity consumption dashboard', () => {
         displayName: 'Customer Demo Account',
         status: 'active',
       },
+      accounts: [
+        {
+          id: 'account-demo',
+          accountNumber: 'customer-demo',
+          displayName: 'Customer Demo Account',
+          status: 'active',
+        },
+      ],
       services: [
         {
           id: 'service-demo',
+          utilityAccountId: 'account-demo',
           serviceType: 'electric',
           serviceName: 'Customer Demo Account Electric Service',
           serviceAddress: null,
@@ -233,9 +251,18 @@ describe('Electricity consumption dashboard', () => {
         displayName: 'Customer Demo Account',
         status: 'active',
       },
+      accounts: [
+        {
+          id: 'account-demo',
+          accountNumber: 'customer-demo',
+          displayName: 'Customer Demo Account',
+          status: 'active',
+        },
+      ],
       services: [
         {
           id: 'service-a',
+          utilityAccountId: 'account-demo',
           serviceType: 'electric',
           serviceName: 'Electric Service • 221123297561',
           serviceAddress: null,
@@ -243,6 +270,7 @@ describe('Electricity consumption dashboard', () => {
         },
         {
           id: 'service-b',
+          utilityAccountId: 'account-demo',
           serviceType: 'electric',
           serviceName: 'Electric Service • 200326019929',
           serviceAddress: null,

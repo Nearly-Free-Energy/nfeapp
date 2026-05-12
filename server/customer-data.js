@@ -61,35 +61,25 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
     return null;
   }
 
-  const { data: account, error: accountError } = await client
+  const { data: accounts, error: accountError } = await client
     .from('utility_accounts')
     .select('id, customer_profile_id, account_number, display_name, status')
     .eq('customer_profile_id', profile.id)
     .eq('status', 'active')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
   if (accountError) {
-    throw new Error(`Unable to load utility account: ${accountError.message}`);
+    throw new Error(`Unable to load utility accounts: ${accountError.message}`);
   }
 
-  if (!account) {
+  if (!accounts || accounts.length === 0) {
     return null;
   }
 
-  const { data: services, error: servicesError } = await client
-    .from('utility_services')
-    .select('id, utility_account_id, service_type, service_name, service_address, status')
-    .eq('utility_account_id', account.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true });
+  const serviceRows = (await Promise.all(accounts.map((account) => loadActiveServicesForAccount(account.id, client)))).flat();
 
-  if (servicesError) {
-    throw new Error(`Unable to load utility services: ${servicesError.message}`);
-  }
-
-  const normalizedServices = toUtilityServices(services ?? []);
+  const normalizedAccounts = toUtilityAccounts(accounts);
+  const normalizedServices = toUtilityServices(serviceRows);
   const microgrids = await loadMicrogridTopology(normalizedServices, client);
 
   return {
@@ -99,12 +89,8 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
       displayName: profile.display_name,
       status: profile.status,
     },
-    account: {
-      id: account.id,
-      accountNumber: account.account_number,
-      displayName: account.display_name,
-      status: account.status,
-    },
+    account: normalizedAccounts[0],
+    accounts: normalizedAccounts,
     services: normalizedServices,
     microgrids,
   };
@@ -206,9 +192,32 @@ export async function upsertCustomerAccess(input, options = {}, client = createS
       displayName: account.display_name,
       status: account.status,
     },
+    accounts: [
+      {
+        id: account.id,
+        accountNumber: account.account_number,
+        displayName: account.display_name,
+        status: account.status,
+      },
+    ],
     services: toUtilityServices(finalServices),
     microgrids: [],
   };
+}
+
+async function loadActiveServicesForAccount(accountId, client) {
+  const { data, error } = await client
+    .from('utility_services')
+    .select('id, utility_account_id, service_type, service_name, service_address, status')
+    .eq('utility_account_id', accountId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw new Error(`Unable to load utility services: ${error.message}`);
+  }
+
+  return data ?? [];
 }
 
 async function loadMicrogridTopology(services, client) {
@@ -343,9 +352,19 @@ async function loadServicesForAccount(accountId, client) {
 function toUtilityServices(rows) {
   return rows.map((row) => ({
     id: row.id,
+    utilityAccountId: row.utility_account_id,
     serviceType: row.service_type,
     serviceName: row.service_name,
     serviceAddress: row.service_address,
+    status: row.status,
+  }));
+}
+
+function toUtilityAccounts(rows) {
+  return rows.map((row) => ({
+    id: row.id,
+    accountNumber: row.account_number,
+    displayName: row.display_name,
     status: row.status,
   }));
 }

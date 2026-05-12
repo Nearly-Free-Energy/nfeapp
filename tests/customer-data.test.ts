@@ -19,6 +19,13 @@ function createFakeClient() {
       display_name: 'Customer Demo Account',
       status: 'active',
     },
+    {
+      id: 'account-2',
+      customer_profile_id: 'profile-1',
+      account_number: 'customer-secondary',
+      display_name: 'Customer Secondary Account',
+      status: 'active',
+    },
   ];
   let serviceRows = [
     {
@@ -26,6 +33,14 @@ function createFakeClient() {
       utility_account_id: 'account-1',
       service_type: 'electric',
       service_name: 'Customer Demo Account Electric Service',
+      service_address: null,
+      status: 'active',
+    },
+    {
+      id: 'service-2',
+      utility_account_id: 'account-2',
+      service_type: 'electric',
+      service_name: 'Customer Secondary Account Electric Service',
       service_address: null,
       status: 'active',
     },
@@ -106,6 +121,12 @@ function createFakeClient() {
           return this;
         },
         order() {
+          if (table === 'utility_accounts') {
+            return Promise.resolve({
+              data: accountRows.filter((row) => row.customer_profile_id === (this._filters ?? {}).customer_profile_id),
+              error: null,
+            });
+          }
           if (table === 'utility_services') {
             return Promise.resolve({
               data: serviceRows.filter((row) => row.utility_account_id === (this._filters ?? {}).utility_account_id),
@@ -290,11 +311,6 @@ describe('customer data helpers', () => {
       account: {
         accountNumber: 'customer-demo',
       },
-      services: [
-        {
-          serviceType: 'electric',
-        },
-      ],
       microgrids: [
         {
           microgridCode: 'demo-microgrid',
@@ -311,6 +327,9 @@ describe('customer data helpers', () => {
         },
       ],
     });
+    expect(result?.accounts).toHaveLength(2);
+    expect(result?.accounts.map((account) => account.accountNumber)).toEqual(['customer-demo', 'customer-secondary']);
+    expect(result?.services.map((service) => service.utilityAccountId)).toEqual(['account-1', 'account-2']);
   });
 
   it('upserts customer access without creating duplicate profiles', async () => {

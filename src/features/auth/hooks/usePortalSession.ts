@@ -31,6 +31,7 @@ export type PortalSessionState =
       email: string;
       profile: CustomerProfile;
       account: UtilityAccount;
+      accounts: UtilityAccount[];
       services: UtilityService[];
       microgrids: Microgrid[];
       session: Session;
@@ -56,6 +57,7 @@ export function usePortalSession(): UsePortalSessionResult {
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [account, setAccount] = useState<UtilityAccount | null>(null);
+  const [accounts, setAccounts] = useState<UtilityAccount[]>([]);
   const [services, setServices] = useState<UtilityService[]>([]);
   const [microgrids, setMicrogrids] = useState<Microgrid[]>([]);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
@@ -76,6 +78,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setVerifiedEmail(null);
         setProfile(null);
         setAccount(null);
+        setAccounts([]);
         setServices([]);
         setMicrogrids([]);
         if (data.session?.user.email) {
@@ -96,6 +99,7 @@ export function usePortalSession(): UsePortalSessionResult {
       setVerifiedEmail(null);
       setProfile(null);
       setAccount(null);
+      setAccounts([]);
       setServices([]);
       setMicrogrids([]);
 
@@ -118,6 +122,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setVerifiedEmail(null);
         setProfile(null);
         setAccount(null);
+        setAccounts([]);
         setServices([]);
         setMicrogrids([]);
         setIsVerifyingSession(false);
@@ -135,6 +140,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setVerifiedEmail(profile.email);
         setProfile(profile.profile);
         setAccount(profile.account);
+        setAccounts(profile.accounts ?? [profile.account]);
         setServices(profile.services);
         setMicrogrids(profile.microgrids);
         setAuthError(null);
@@ -146,6 +152,7 @@ export function usePortalSession(): UsePortalSessionResult {
         setVerifiedEmail(null);
         setProfile(null);
         setAccount(null);
+        setAccounts([]);
         setServices([]);
         setMicrogrids([]);
         setAuthMessage(null);
@@ -196,6 +203,7 @@ export function usePortalSession(): UsePortalSessionResult {
     setVerifiedEmail(null);
     setProfile(null);
     setAccount(null);
+    setAccounts([]);
     setServices([]);
     setMicrogrids([]);
     setAuthMessage(null);
@@ -268,6 +276,7 @@ export function usePortalSession(): UsePortalSessionResult {
       email: verifiedEmail,
       profile,
       account,
+      accounts,
       services,
       microgrids,
       session,

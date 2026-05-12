@@ -149,16 +149,21 @@ describe('/api/me', () => {
       }),
     );
     mockFrom.mockReturnValueOnce(
-      createQueryChain({
-        data: {
-          id: 'account-demo',
-          customer_profile_id: 'profile-demo',
-          account_number: 'customer-demo',
-          display_name: 'Customer Demo Account',
-          status: 'active',
+      createQueryChain(
+        {
+          data: [
+            {
+              id: 'account-demo',
+              customer_profile_id: 'profile-demo',
+              account_number: 'customer-demo',
+              display_name: 'Customer Demo Account',
+              status: 'active',
+            },
+          ],
+          error: null,
         },
-        error: null,
-      }),
+        { resolveOnOrder: true },
+      ),
     );
     mockFrom.mockReturnValueOnce(
       createQueryChain(
@@ -272,9 +277,18 @@ describe('/api/me', () => {
         displayName: 'Customer Demo Account',
         status: 'active',
       },
+      accounts: [
+        {
+          id: 'account-demo',
+          accountNumber: 'customer-demo',
+          displayName: 'Customer Demo Account',
+          status: 'active',
+        },
+      ],
       services: [
         {
           id: 'service-electric',
+          utilityAccountId: 'account-demo',
           serviceType: 'electric',
           serviceName: 'Customer Demo Account Electric Service',
           serviceAddress: null,
@@ -282,6 +296,7 @@ describe('/api/me', () => {
         },
         {
           id: 'service-water',
+          utilityAccountId: 'account-demo',
           serviceType: 'water',
           serviceName: 'Customer Demo Account Water Service',
           serviceAddress: '123 Main St',

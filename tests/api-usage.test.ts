@@ -76,16 +76,21 @@ describe('/api/usage', () => {
       }),
     );
     mockFrom.mockReturnValueOnce(
-      createQueryChain({
-        data: {
-          id: 'account-demo',
-          customer_profile_id: 'profile-demo',
-          account_number: 'customer-demo',
-          display_name: 'Customer Demo Account',
-          status: 'active',
+      createQueryChain(
+        {
+          data: [
+            {
+              id: 'account-demo',
+              customer_profile_id: 'profile-demo',
+              account_number: 'customer-demo',
+              display_name: 'Customer Demo Account',
+              status: 'active',
+            },
+          ],
+          error: null,
         },
-        error: null,
-      }),
+        { resolveOnOrder: true },
+      ),
     );
     mockFrom.mockReturnValueOnce(
       createQueryChain(
@@ -192,16 +197,21 @@ describe('/api/usage', () => {
       }),
     );
     mockFrom.mockReturnValueOnce(
-      createQueryChain({
-        data: {
-          id: 'account-demo',
-          customer_profile_id: 'profile-demo',
-          account_number: 'customer-demo',
-          display_name: 'Customer Demo Account',
-          status: 'active',
+      createQueryChain(
+        {
+          data: [
+            {
+              id: 'account-demo',
+              customer_profile_id: 'profile-demo',
+              account_number: 'customer-demo',
+              display_name: 'Customer Demo Account',
+              status: 'active',
+            },
+          ],
+          error: null,
         },
-        error: null,
-      }),
+        { resolveOnOrder: true },
+      ),
     );
     mockFrom.mockReturnValueOnce(
       createQueryChain(
@@ -280,16 +290,21 @@ describe('/api/usage', () => {
       }),
     );
     mockFrom.mockReturnValueOnce(
-      createQueryChain({
-        data: {
-          id: 'account-demo',
-          customer_profile_id: 'profile-demo',
-          account_number: 'customer-demo',
-          display_name: 'Customer Demo Account',
-          status: 'active',
+      createQueryChain(
+        {
+          data: [
+            {
+              id: 'account-demo',
+              customer_profile_id: 'profile-demo',
+              account_number: 'customer-demo',
+              display_name: 'Customer Demo Account',
+              status: 'active',
+            },
+          ],
+          error: null,
         },
-        error: null,
-      }),
+        { resolveOnOrder: true },
+      ),
     );
     mockFrom.mockReturnValueOnce(
       createQueryChain(

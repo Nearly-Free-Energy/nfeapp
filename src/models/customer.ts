@@ -17,6 +17,7 @@ export type UtilityAccount = {
 
 export type UtilityService = {
   id: string;
+  utilityAccountId: string;
   serviceType: UtilityServiceType;
   serviceName: string;
   serviceAddress: string | null;
@@ -60,6 +61,7 @@ export type MeApiResponse = {
   email: string;
   profile: CustomerProfile;
   account: UtilityAccount;
+  accounts: UtilityAccount[];
   services: UtilityService[];
   microgrids: Microgrid[];
 };
