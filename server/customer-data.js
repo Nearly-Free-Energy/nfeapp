@@ -61,18 +61,9 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
     return null;
   }
 
-  const { data: accounts, error: accountError } = await client
-    .from('utility_accounts')
-    .select('id, customer_profile_id, account_number, display_name, status')
-    .eq('customer_profile_id', profile.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true });
+  const accounts = await loadAccessibleAccounts(profile.id, client);
 
-  if (accountError) {
-    throw new Error(`Unable to load utility accounts: ${accountError.message}`);
-  }
-
-  if (!accounts || accounts.length === 0) {
+  if (accounts.length === 0) {
     return null;
   }
 
@@ -94,6 +85,63 @@ export async function fetchAuthorizedCustomerContext(email, client = createServe
     services: normalizedServices,
     microgrids,
   };
+}
+
+async function loadAccessibleAccounts(profileId, client) {
+  const { data: ownedAccounts, error: ownedAccountError } = await client
+    .from('utility_accounts')
+    .select('id, customer_profile_id, account_number, display_name, status')
+    .eq('customer_profile_id', profileId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true });
+
+  if (ownedAccountError) {
+    throw new Error(`Unable to load utility accounts: ${ownedAccountError.message}`);
+  }
+
+  const accountRowsById = new Map((ownedAccounts ?? []).map((account) => [account.id, account]));
+
+  const { data: accessRows, error: accessError } = await client
+    .from('customer_utility_account_access')
+    .select('utility_account_id, status')
+    .eq('customer_profile_id', profileId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true });
+
+  if (accessError) {
+    if (isMissingRelationError(accessError)) {
+      return [...accountRowsById.values()];
+    }
+
+    throw new Error(`Unable to load utility account access grants: ${accessError.message}`);
+  }
+
+  const grantedAccountIds = [...new Set((accessRows ?? []).map((row) => row.utility_account_id))].filter(
+    (accountId) => !accountRowsById.has(accountId),
+  );
+
+  if (grantedAccountIds.length > 0) {
+    const { data: grantedAccounts, error: grantedAccountError } = await client
+      .from('utility_accounts')
+      .select('id, customer_profile_id, account_number, display_name, status')
+      .in('id', grantedAccountIds)
+      .eq('status', 'active')
+      .order('created_at', { ascending: true });
+
+    if (grantedAccountError) {
+      throw new Error(`Unable to load granted utility accounts: ${grantedAccountError.message}`);
+    }
+
+    for (const account of grantedAccounts ?? []) {
+      accountRowsById.set(account.id, account);
+    }
+  }
+
+  return [...accountRowsById.values()].sort((left, right) => left.account_number.localeCompare(right.account_number));
+}
+
+function isMissingRelationError(error) {
+  return error.code === '42P01' || /does not exist|schema cache/i.test(error.message ?? '');
 }
 
 export async function fetchAuthorizedCustomer(email, client = createServerSupabaseClient()) {
@@ -202,6 +250,75 @@ export async function upsertCustomerAccess(input, options = {}, client = createS
     ],
     services: toUtilityServices(finalServices),
     microgrids: [],
+  };
+}
+
+export async function grantCustomerAccountAccess(input, client = createServerSupabaseClient()) {
+  const normalizedEmail = normalizeEmail(input.email);
+  const profileDisplayName = input.profileDisplayName?.trim() || normalizedEmail;
+  const accessRole = input.accessRole ?? 'viewer';
+
+  const { data: profileRows, error: profileError } = await client
+    .from('customer_profiles')
+    .upsert(
+      {
+        email: normalizedEmail,
+        display_name: profileDisplayName,
+        status: input.profileStatus ?? 'active',
+      },
+      { onConflict: 'email' },
+    )
+    .select('id, email, display_name, status');
+
+  if (profileError || !profileRows || profileRows.length === 0) {
+    throw new Error(profileError?.message || 'Unable to upsert customer profile.');
+  }
+
+  const profile = profileRows[0];
+
+  const { data: account, error: accountError } = await client
+    .from('utility_accounts')
+    .select('id, customer_profile_id, account_number, display_name, status')
+    .eq('account_number', input.accountNumber.trim())
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (accountError) {
+    throw new Error(`Unable to load utility account: ${accountError.message}`);
+  }
+
+  if (!account) {
+    throw new Error(`No active utility account exists for account number ${input.accountNumber}.`);
+  }
+
+  const { error: accessError } = await client.from('customer_utility_account_access').upsert(
+    {
+      customer_profile_id: profile.id,
+      utility_account_id: account.id,
+      access_role: accessRole,
+      status: input.accessStatus ?? 'active',
+    },
+    { onConflict: 'customer_profile_id,utility_account_id' },
+  );
+
+  if (accessError) {
+    throw new Error(`Unable to grant utility account access: ${accessError.message}`);
+  }
+
+  return {
+    profile: {
+      id: profile.id,
+      email: profile.email,
+      displayName: profile.display_name,
+      status: profile.status,
+    },
+    account: {
+      id: account.id,
+      accountNumber: account.account_number,
+      displayName: account.display_name,
+      status: account.status,
+    },
+    accessRole,
   };
 }
 

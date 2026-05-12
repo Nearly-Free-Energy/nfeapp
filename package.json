@@ -11,6 +11,7 @@
     "release:check": "npm test && npm run build",
     "db:migrate:customers": "node scripts/migrate-customer-map.js",
     "db:onboard:customer": "node scripts/onboard-customer.js",
+    "db:grant:account": "node scripts/grant-account-access.js",
     "db:import:usage": "node scripts/import-usage.js"
   },
   "dependencies": {

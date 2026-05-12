@@ -55,6 +55,10 @@ describe('/api/me', () => {
     };
   }
 
+  function createEmptyAccessChain() {
+    return createQueryChain({ data: [], error: null }, { resolveOnOrder: true });
+  }
+
   it('returns 401 without a bearer token', async () => {
     const { default: handler } = await import('../api/me');
     const recorder = createResponseRecorder();
@@ -165,6 +169,7 @@ describe('/api/me', () => {
         { resolveOnOrder: true },
       ),
     );
+    mockFrom.mockReturnValueOnce(createEmptyAccessChain());
     mockFrom.mockReturnValueOnce(
       createQueryChain(
         {

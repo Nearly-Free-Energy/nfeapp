@@ -44,6 +44,10 @@ function createQueryChain(result: { data: unknown; error: Error | null }, option
   };
 }
 
+function createEmptyAccessChain() {
+  return createQueryChain({ data: [], error: null }, { resolveOnOrder: true });
+}
+
 describe('/api/usage', () => {
   vi.stubEnv('SUPABASE_URL', 'https://example.supabase.co');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'sb_secret_test');
@@ -92,6 +96,7 @@ describe('/api/usage', () => {
         { resolveOnOrder: true },
       ),
     );
+    mockFrom.mockReturnValueOnce(createEmptyAccessChain());
     mockFrom.mockReturnValueOnce(
       createQueryChain(
         {
@@ -213,6 +218,7 @@ describe('/api/usage', () => {
         { resolveOnOrder: true },
       ),
     );
+    mockFrom.mockReturnValueOnce(createEmptyAccessChain());
     mockFrom.mockReturnValueOnce(
       createQueryChain(
         {
@@ -306,6 +312,7 @@ describe('/api/usage', () => {
         { resolveOnOrder: true },
       ),
     );
+    mockFrom.mockReturnValueOnce(createEmptyAccessChain());
     mockFrom.mockReturnValueOnce(
       createQueryChain(
         {

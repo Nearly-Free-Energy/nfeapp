@@ -19,6 +19,16 @@ create table if not exists utility_accounts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists customer_utility_account_access (
+  customer_profile_id uuid not null references customer_profiles(id) on delete cascade,
+  utility_account_id uuid not null references utility_accounts(id) on delete cascade,
+  access_role text not null default 'viewer',
+  status text not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (customer_profile_id, utility_account_id)
+);
+
 create table if not exists utility_services (
   id uuid primary key default gen_random_uuid(),
   utility_account_id uuid not null references utility_accounts(id) on delete cascade,
@@ -113,6 +123,8 @@ create table if not exists usage_daily_snapshots (
 
 create index if not exists idx_customer_profiles_email on customer_profiles(email);
 create index if not exists idx_utility_accounts_profile on utility_accounts(customer_profile_id);
+create index if not exists idx_customer_utility_account_access_profile on customer_utility_account_access(customer_profile_id);
+create index if not exists idx_customer_utility_account_access_account on customer_utility_account_access(utility_account_id);
 create index if not exists idx_utility_services_account on utility_services(utility_account_id);
 create index if not exists idx_utility_service_microgrids_service on utility_service_microgrids(utility_service_id);
 create index if not exists idx_utility_service_microgrids_microgrid on utility_service_microgrids(microgrid_id);
@@ -129,6 +141,7 @@ create index if not exists idx_usage_daily_snapshots_service_date on usage_daily
 -- until we intentionally add end-user policies.
 alter table customer_profiles enable row level security;
 alter table utility_accounts enable row level security;
+alter table customer_utility_account_access enable row level security;
 alter table utility_services enable row level security;
 alter table microgrids enable row level security;
 alter table utility_service_microgrids enable row level security;
@@ -168,6 +181,25 @@ as $$
   )
 $$;
 
+create or replace function public.customer_can_access_utility_account(target_account_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select public.customer_owns_utility_account(target_account_id)
+    or exists (
+      select 1
+      from public.customer_utility_account_access cua
+      join public.utility_accounts ua on ua.id = cua.utility_account_id
+      where cua.utility_account_id = target_account_id
+        and cua.customer_profile_id = public.current_customer_profile_id()
+        and cua.status = 'active'
+        and ua.status = 'active'
+    )
+$$;
+
 create or replace function public.customer_owns_utility_service(target_service_id uuid)
 returns boolean
 language sql
@@ -182,7 +214,7 @@ as $$
     where us.id = target_service_id
       and us.status = 'active'
       and ua.status = 'active'
-      and ua.customer_profile_id = public.current_customer_profile_id()
+      and public.customer_can_access_utility_account(ua.id)
   )
 $$;
 
@@ -203,7 +235,7 @@ as $$
       and mg.status = 'active'
       and us.status = 'active'
       and ua.status = 'active'
-      and ua.customer_profile_id = public.current_customer_profile_id()
+      and public.customer_can_access_utility_account(ua.id)
   )
 $$;
 
@@ -225,12 +257,14 @@ $$;
 
 revoke all on function public.current_customer_profile_id() from public;
 revoke all on function public.customer_owns_utility_account(uuid) from public;
+revoke all on function public.customer_can_access_utility_account(uuid) from public;
 revoke all on function public.customer_owns_utility_service(uuid) from public;
 revoke all on function public.customer_owns_microgrid(uuid) from public;
 revoke all on function public.customer_owns_gateway(uuid) from public;
 
 grant execute on function public.current_customer_profile_id() to authenticated;
 grant execute on function public.customer_owns_utility_account(uuid) to authenticated;
+grant execute on function public.customer_can_access_utility_account(uuid) to authenticated;
 grant execute on function public.customer_owns_utility_service(uuid) to authenticated;
 grant execute on function public.customer_owns_microgrid(uuid) to authenticated;
 grant execute on function public.customer_owns_gateway(uuid) to authenticated;
@@ -249,7 +283,17 @@ for select
 to authenticated
 using (
   status = 'active'
-  and public.customer_owns_utility_account(id)
+  and public.customer_can_access_utility_account(id)
+);
+
+drop policy if exists customer_utility_account_access_customer_select on public.customer_utility_account_access;
+create policy customer_utility_account_access_customer_select
+on public.customer_utility_account_access
+for select
+to authenticated
+using (
+  status = 'active'
+  and customer_profile_id = public.current_customer_profile_id()
 );
 
 drop policy if exists utility_services_customer_select on public.utility_services;

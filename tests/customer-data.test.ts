@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchAuthorizedCustomer, normalizeEmail, upsertCustomerAccess } from '../server/customer-data';
+import { fetchAuthorizedCustomer, grantCustomerAccountAccess, normalizeEmail, upsertCustomerAccess } from '../server/customer-data';
 import { legacyCustomerMap } from '../server/legacy-customer-map';
 
 function createFakeClient() {
@@ -8,6 +8,12 @@ function createFakeClient() {
       id: 'profile-1',
       email: 'customer@example.com',
       display_name: 'Customer Demo Profile',
+      status: 'active',
+    },
+    {
+      id: 'profile-2',
+      email: 'shared@example.com',
+      display_name: 'Shared Customer Profile',
       status: 'active',
     },
   ];
@@ -24,6 +30,14 @@ function createFakeClient() {
       customer_profile_id: 'profile-1',
       account_number: 'customer-secondary',
       display_name: 'Customer Secondary Account',
+      status: 'active',
+    },
+  ];
+  const accountAccessRows = [
+    {
+      customer_profile_id: 'profile-2',
+      utility_account_id: 'account-1',
+      access_role: 'viewer',
       status: 'active',
     },
   ];
@@ -89,6 +103,9 @@ function createFakeClient() {
         },
         in(field, values) {
           this._inFilter = { field, values };
+          if (table === 'utility_accounts') {
+            return this;
+          }
           if (table === 'utility_service_microgrids') {
             return Promise.resolve({
               data: serviceMicrogridRows.filter((row) => values.includes(row[field])),
@@ -122,8 +139,26 @@ function createFakeClient() {
         },
         order() {
           if (table === 'utility_accounts') {
+            if ((this._inFilter ?? {}).field) {
+              const { field, values } = this._inFilter;
+              return Promise.resolve({
+                data: accountRows.filter((row) => values.includes(row[field]) && row.status === (this._filters ?? {}).status),
+                error: null,
+              });
+            }
+
             return Promise.resolve({
               data: accountRows.filter((row) => row.customer_profile_id === (this._filters ?? {}).customer_profile_id),
+              error: null,
+            });
+          }
+          if (table === 'customer_utility_account_access') {
+            return Promise.resolve({
+              data: accountAccessRows.filter(
+                (row) =>
+                  row.customer_profile_id === (this._filters ?? {}).customer_profile_id &&
+                  row.status === (this._filters ?? {}).status,
+              ),
               error: null,
             });
           }
@@ -145,7 +180,13 @@ function createFakeClient() {
           }
           if (table === 'utility_accounts') {
             return {
-              data: accountRows.find((row) => row.customer_profile_id === filters.customer_profile_id) ?? null,
+              data:
+                accountRows.find(
+                  (row) =>
+                    (!filters.customer_profile_id || row.customer_profile_id === filters.customer_profile_id) &&
+                    (!filters.account_number || row.account_number === filters.account_number) &&
+                    (!filters.status || row.status === filters.status),
+                ) ?? null,
               error: null,
             };
           }
@@ -237,6 +278,29 @@ function createFakeClient() {
             return { error: null };
           }
 
+          if (table === 'customer_utility_account_access') {
+            const record = payload as {
+              customer_profile_id: string;
+              utility_account_id: string;
+              access_role: string;
+              status: string;
+            };
+            const existing = accountAccessRows.find(
+              (row) =>
+                row.customer_profile_id === record.customer_profile_id &&
+                row.utility_account_id === record.utility_account_id,
+            );
+
+            if (existing) {
+              existing.access_role = record.access_role;
+              existing.status = record.status;
+            } else {
+              accountAccessRows.push(record);
+            }
+
+            return { error: null };
+          }
+
           const records = payload as Array<{
             utility_account_id: string;
             service_type: string;
@@ -294,7 +358,7 @@ function createFakeClient() {
     },
   };
 
-  return Object.assign(client, { meterSourceRows });
+  return Object.assign(client, { accountAccessRows, meterSourceRows });
 }
 
 describe('customer data helpers', () => {
@@ -330,6 +394,61 @@ describe('customer data helpers', () => {
     expect(result?.accounts).toHaveLength(2);
     expect(result?.accounts.map((account) => account.accountNumber)).toEqual(['customer-demo', 'customer-secondary']);
     expect(result?.services.map((service) => service.utilityAccountId)).toEqual(['account-1', 'account-2']);
+  });
+
+  it('loads utility accounts granted through shared access', async () => {
+    const client = createFakeClient();
+    const result = await fetchAuthorizedCustomer('shared@example.com', client as never);
+
+    expect(result).toMatchObject({
+      email: 'shared@example.com',
+      profile: {
+        displayName: 'Shared Customer Profile',
+      },
+      account: {
+        accountNumber: 'customer-demo',
+      },
+    });
+    expect(result?.accounts).toHaveLength(1);
+    expect(result?.services).toHaveLength(1);
+    expect(result?.services[0]).toMatchObject({
+      utilityAccountId: 'account-1',
+      serviceName: 'Customer Demo Account Electric Service',
+    });
+  });
+
+  it('grants an existing utility account to a customer profile', async () => {
+    const client = createFakeClient();
+
+    const result = await grantCustomerAccountAccess(
+      {
+        email: 'new-shared@example.com',
+        profileDisplayName: 'New Shared Profile',
+        accountNumber: 'customer-demo',
+      },
+      client as never,
+    );
+
+    expect(result).toMatchObject({
+      profile: {
+        email: 'new-shared@example.com',
+        displayName: 'New Shared Profile',
+      },
+      account: {
+        accountNumber: 'customer-demo',
+      },
+      accessRole: 'viewer',
+    });
+    expect(client.accountAccessRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          customer_profile_id: 'profile-3',
+          utility_account_id: 'account-1',
+          access_role: 'viewer',
+          status: 'active',
+        }),
+      ]),
+    );
   });
 
   it('upserts customer access without creating duplicate profiles', async () => {
