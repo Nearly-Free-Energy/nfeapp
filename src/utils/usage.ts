@@ -76,14 +76,15 @@ export function summarizePeriod(
   return {
     totalUsage: roundToTwo(totalUsage),
     averageDailyUsage: roundToTwo(averageDailyUsage),
-    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(usagePoints, today, billingMonthAnchor),
+    currentUsageCashUgx: calculateCurrentUsageCashUgx(usagePoints, today, billingMonthAnchor),
+    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(averageDailyUsage, billingMonthAnchor),
     unit,
     lowestUsageDay: sorted[0]?.key,
     highestUsageDay: sorted[sorted.length - 1]?.key,
   };
 }
 
-export function calculateEstimatedMonthlyBillUgx(points: UsagePoint[], today: Date, billingMonthAnchor: Date = today): number {
+export function calculateCurrentUsageCashUgx(points: UsagePoint[], today: Date, billingMonthAnchor: Date = today): number {
   const monthUsage = points
     .filter((point) => point.unit === 'kWh' && point.usageValue !== null && point.isFuture !== true)
     .filter((point) => {
@@ -96,9 +97,12 @@ export function calculateEstimatedMonthlyBillUgx(points: UsagePoint[], today: Da
     })
     .reduce((sum, point) => sum + (point.usageValue ?? 0), 0);
 
-  const energyCharge = calculateTieredEnergyCharge(monthUsage);
-  const subtotal = energyCharge + MONTHLY_SERVICE_CHARGE_UGX;
-  return Math.round(subtotal * (1 + VAT_RATE));
+  return calculateBillUgx(monthUsage);
+}
+
+export function calculateEstimatedMonthlyBillUgx(averageDailyUsage: number, billingMonthAnchor: Date): number {
+  const daysInMonth = endOfMonth(billingMonthAnchor).getDate();
+  return calculateBillUgx(averageDailyUsage * daysInMonth);
 }
 
 export function formatUgxAmount(value: number): string {
@@ -170,4 +174,10 @@ function calculateTieredEnergyCharge(usageKwh: number): number {
   }
 
   return total;
+}
+
+function calculateBillUgx(usageKwh: number): number {
+  const energyCharge = calculateTieredEnergyCharge(usageKwh);
+  const subtotal = energyCharge + MONTHLY_SERVICE_CHARGE_UGX;
+  return Math.round(subtotal * (1 + VAT_RATE));
 }

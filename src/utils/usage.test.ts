@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { UsagePoint } from '../models/usage';
-import { calculateEstimatedMonthlyBillUgx, summarizePeriod } from './usage';
+import { calculateCurrentUsageCashUgx, calculateEstimatedMonthlyBillUgx, summarizePeriod } from './usage';
 
 function buildPoint(date: string, usageValue: number | null, isFuture = false): UsagePoint {
   return {
@@ -13,20 +13,20 @@ function buildPoint(date: string, usageValue: number | null, isFuture = false): 
 
 describe('usage billing helpers', () => {
   it('includes service charge and VAT when there is no current-month usage', () => {
-    expect(calculateEstimatedMonthlyBillUgx([], new Date(2026, 4, 6))).toBe(6278);
+    expect(calculateCurrentUsageCashUgx([], new Date(2026, 4, 6))).toBe(6278);
   });
 
   it('prices the first 15 kWh at the first tier', () => {
-    expect(calculateEstimatedMonthlyBillUgx([buildPoint('2026-05-01', 15)], new Date(2026, 4, 6))).toBe(10703);
+    expect(calculateCurrentUsageCashUgx([buildPoint('2026-05-01', 15)], new Date(2026, 4, 6))).toBe(10703);
   });
 
   it('prices the next 65 kWh at the second tier', () => {
-    expect(calculateEstimatedMonthlyBillUgx([buildPoint('2026-05-01', 80)], new Date(2026, 4, 6))).toBe(68703);
+    expect(calculateCurrentUsageCashUgx([buildPoint('2026-05-01', 80)], new Date(2026, 4, 6))).toBe(68703);
   });
 
   it('prices the next 70 kWh at the third tier and anything above 150 at the top tier', () => {
-    expect(calculateEstimatedMonthlyBillUgx([buildPoint('2026-05-01', 150)], new Date(2026, 4, 6))).toBe(102734);
-    expect(calculateEstimatedMonthlyBillUgx([buildPoint('2026-05-01', 151)], new Date(2026, 4, 6))).toBe(103627);
+    expect(calculateCurrentUsageCashUgx([buildPoint('2026-05-01', 150)], new Date(2026, 4, 6))).toBe(102734);
+    expect(calculateCurrentUsageCashUgx([buildPoint('2026-05-01', 151)], new Date(2026, 4, 6))).toBe(103627);
   });
 
   it('uses only actual usage from the current month and excludes future or prior-month points', () => {
@@ -38,7 +38,7 @@ describe('usage billing helpers', () => {
       buildPoint('2026-05-04', null),
     ];
 
-    expect(calculateEstimatedMonthlyBillUgx(points, new Date(2026, 4, 6))).toBe(10703);
+    expect(calculateCurrentUsageCashUgx(points, new Date(2026, 4, 6))).toBe(10703);
   });
 
   it('uses the visible month when calculating the bill for historical months', () => {
@@ -49,10 +49,10 @@ describe('usage billing helpers', () => {
       buildPoint('2026-05-02', 5),
     ];
 
-    expect(calculateEstimatedMonthlyBillUgx(points, new Date(2026, 4, 6), new Date(2026, 2, 15))).toBe(24087);
+    expect(calculateCurrentUsageCashUgx(points, new Date(2026, 4, 6), new Date(2026, 2, 15))).toBe(24087);
   });
 
-  it('adds the estimated monthly bill to the usage summary', () => {
+  it('adds current cash and a pace-based monthly estimate to the usage summary', () => {
     const summary = summarizePeriod(
       [
         {
@@ -74,21 +74,12 @@ describe('usage billing helpers', () => {
       new Date(2026, 4, 6),
     );
 
-    expect(summary.estimatedMonthlyBillUgx).toBe(10703);
+    expect(summary.currentUsageCashUgx).toBe(10703);
+    expect(summary.estimatedMonthlyBillUgx).toBe(176350);
   });
 
-  it('changes the estimated monthly bill when the viewed month changes', () => {
-    const points = [
-      buildPoint('2026-03-01', 20),
-      buildPoint('2026-03-02', 10),
-      buildPoint('2026-05-01', 10),
-      buildPoint('2026-05-02', 5),
-    ];
-
-    const marchSummary = summarizePeriod([], points, new Date(2026, 4, 6), new Date(2026, 2, 15));
-    const maySummary = summarizePeriod([], points, new Date(2026, 4, 6), new Date(2026, 4, 15));
-
-    expect(marchSummary.estimatedMonthlyBillUgx).toBe(24087);
-    expect(maySummary.estimatedMonthlyBillUgx).toBe(10703);
+  it('projects the monthly bill using the visible month length and current daily pace', () => {
+    expect(calculateEstimatedMonthlyBillUgx(15, new Date(2026, 2, 15))).toBe(383814);
+    expect(calculateEstimatedMonthlyBillUgx(15, new Date(2026, 3, 15))).toBe(370429);
   });
 });

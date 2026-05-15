@@ -4,11 +4,10 @@ import { getUsage } from '../../../api';
 import { BottomControlTray } from '../../../components/BottomControlTray';
 import { UsageSummary } from '../../../components/UsageSummary';
 import { MonthlyCalendar } from '../../../components/MonthlyCalendar';
-import { WeeklyCalendar } from '../../../components/WeeklyCalendar';
 import type { UtilityAccount, UtilityService } from '../../../models/customer';
-import type { UsageApiResponse, UsageCalendarView } from '../../../models/usage';
-import { addDays, addMonths, endOfWeek, formatMonthYear, formatWeekRange, parseIsoDate, startOfWeek } from '../../../utils/date';
-import { buildUsageLookup, getMonthDays, getWeekDays, summarizePeriod } from '../../../utils/usage';
+import type { UsageApiResponse } from '../../../models/usage';
+import { addMonths, formatMonthYear, parseIsoDate } from '../../../utils/date';
+import { buildUsageLookup, getMonthDays, summarizePeriod } from '../../../utils/usage';
 
 const INITIAL_ANCHOR_DATE = parseIsoDate('2026-03-22');
 
@@ -16,14 +15,14 @@ type UsageOverviewProps = {
   accessToken: string;
   accounts: UtilityAccount[];
   services: UtilityService[];
+  previewUsageData?: UsageApiResponse;
 };
 
-export function UsageOverview({ accessToken, accounts, services }: UsageOverviewProps) {
+export function UsageOverview({ accessToken, accounts, services, previewUsageData }: UsageOverviewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useState<UsageCalendarView>('month');
   const [anchorDate, setAnchorDate] = useState<Date>(INITIAL_ANCHOR_DATE);
   const [selectedDayKey, setSelectedDayKey] = useState<string | undefined>(undefined);
-  const [usageData, setUsageData] = useState<UsageApiResponse | null>(null);
+  const [usageData, setUsageData] = useState<UsageApiResponse | null>(previewUsageData ?? null);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
   const electricServices = services.filter((service) => service.serviceType === 'electric' && service.status === 'active');
@@ -31,12 +30,25 @@ export function UsageOverview({ accessToken, accounts, services }: UsageOverview
   const selectedServiceId = requestedServiceId ?? electricServices[0]?.id ?? undefined;
 
   useEffect(() => {
+    if (previewUsageData) {
+      return;
+    }
+
     if (!requestedServiceId && electricServices[0]?.id) {
       setSearchParams({ serviceId: electricServices[0].id }, { replace: true });
     }
-  }, [electricServices, requestedServiceId, setSearchParams]);
+  }, [electricServices, previewUsageData, requestedServiceId, setSearchParams]);
 
   useEffect(() => {
+    if (previewUsageData) {
+      setUsageData(previewUsageData);
+      setUsageError(null);
+      setIsLoadingUsage(false);
+      setAnchorDate(parseIsoDate(previewUsageData.today));
+      setSelectedDayKey(undefined);
+      return;
+    }
+
     if (!selectedServiceId) {
       setUsageData(null);
       setUsageError('No active electric service is available for usage.');
@@ -78,22 +90,20 @@ export function UsageOverview({ accessToken, accounts, services }: UsageOverview
     return () => {
       isMounted = false;
     };
-  }, [accessToken, selectedServiceId]);
+  }, [accessToken, previewUsageData, selectedServiceId]);
 
   const usagePoints = usageData?.points ?? [];
   const usageLookup = buildUsageLookup(usagePoints);
   const fallbackUnit = usageData?.unit ?? 'kWh';
   const usageToday = parseIsoDate(usageData?.today ?? '2026-03-25');
-  const weekDays = getWeekDays(anchorDate, usageLookup, usageToday, fallbackUnit);
   const monthDays = getMonthDays(anchorDate, usageLookup, usageToday, fallbackUnit);
-  const visibleDays = view === 'week' ? weekDays : monthDays.filter((day) => day.isCurrentMonth);
+  const visibleDays = monthDays.filter((day) => day.isCurrentMonth);
   const summary = summarizePeriod(visibleDays, usagePoints, usageToday, anchorDate);
-  const periodLabel =
-    view === 'week' ? formatWeekRange(startOfWeek(anchorDate), endOfWeek(anchorDate)) : formatMonthYear(anchorDate);
+  const periodLabel = formatMonthYear(anchorDate);
 
   function handleNavigate(step: -1 | 1) {
     setSelectedDayKey(undefined);
-    setAnchorDate((current) => (view === 'week' ? addDays(current, step * 7) : addMonths(current, step)));
+    setAnchorDate((current) => addMonths(current, step));
   }
 
   function handleServiceChange(nextServiceId: string) {
@@ -138,18 +148,12 @@ export function UsageOverview({ accessToken, accounts, services }: UsageOverview
 
       <UsageSummary summary={summary} />
 
-      {view === 'week' ? (
-        <WeeklyCalendar days={weekDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
-      ) : (
-        <MonthlyCalendar days={monthDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
-      )}
+      <MonthlyCalendar days={monthDays} selectedKey={selectedDayKey} onSelect={setSelectedDayKey} />
 
       <BottomControlTray
         label={periodLabel}
-        view={view}
         onPrevious={() => handleNavigate(-1)}
         onNext={() => handleNavigate(1)}
-        onChangeView={setView}
       />
     </>
   );

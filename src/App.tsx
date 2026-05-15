@@ -5,9 +5,58 @@ import { SignInScreen } from './features/auth/components/SignInScreen';
 import { usePortalSession } from './features/auth/hooks/usePortalSession';
 import { DashboardScreen } from './features/dashboard/components/DashboardScreen';
 import { UsageOverview } from './features/usage/components/UsageOverview';
+import type { UtilityAccount, UtilityService } from './models/customer';
+import type { UsageApiResponse } from './models/usage';
+
+const previewAccount: UtilityAccount = {
+  id: 'preview-account',
+  accountNumber: 'preview-account',
+  displayName: 'Preview Customer',
+  status: 'active',
+};
+
+const previewServices: UtilityService[] = [
+  {
+    id: 'preview-service',
+    utilityAccountId: 'preview-account',
+    serviceType: 'electric',
+    serviceName: 'Electric Service',
+    serviceAddress: null,
+    status: 'active',
+  },
+];
+
+const previewUsageData: UsageApiResponse = {
+  accountId: 'preview-account',
+  serviceId: 'preview-service',
+  serviceName: 'Electric Service',
+  unit: 'kWh',
+  source: 'seeded-demo',
+  today: '2026-03-25',
+  points: [
+    { date: '2026-03-22', usageValue: 31, unit: 'kWh', isFuture: false },
+    { date: '2026-03-23', usageValue: 27, unit: 'kWh', isFuture: false },
+    { date: '2026-03-24', usageValue: 24, unit: 'kWh', isFuture: false },
+    { date: '2026-03-25', usageValue: 22, unit: 'kWh', isFuture: false },
+  ],
+};
 
 function App() {
+  const isLocalPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'usage';
   const { state, handleEmailChange, handleSignIn, handleSignOut } = usePortalSession();
+
+  if (isLocalPreview) {
+    return (
+      <DashboardScreen email="preview@example.com" accountName={previewAccount.displayName} onSignOut={async () => undefined}>
+        <UsageOverview
+          accessToken="preview-token"
+          accounts={[previewAccount]}
+          services={previewServices}
+          previewUsageData={previewUsageData}
+        />
+      </DashboardScreen>
+    );
+  }
 
   if (state.status === 'checking') {
     return <AuthStatusScreen title="Electricity Consumption" message="Checking your session..." />;

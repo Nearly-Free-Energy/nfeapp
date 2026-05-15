@@ -335,14 +335,9 @@ h1 {
   letter-spacing: 0.08em;
 }
 
-.week-grid,
 .month-grid {
   display: grid;
   gap: 12px;
-}
-
-.week-grid {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .month-grid {
@@ -415,7 +410,7 @@ h1 {
 }
 
 .day-cell__date {
-  font-size: 0.95rem;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
@@ -437,8 +432,7 @@ h1 {
   bottom: max(16px, env(safe-area-inset-bottom));
   margin-top: 22px;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
   padding: 14px;
   border-radius: 26px;
   background: rgba(24, 74, 108, 0.9);
@@ -470,8 +464,7 @@ h1 {
   align-items: center;
 }
 
-.bottom-period-nav__button,
-.bottom-view-toggle__button {
+.bottom-period-nav__button {
   border: 0;
   cursor: pointer;
 }
@@ -497,27 +490,6 @@ h1 {
   color: #164868;
   font-weight: 800;
   white-space: nowrap;
-}
-
-.bottom-view-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.bottom-view-toggle__button {
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #eef8fd;
-  font-weight: 800;
-}
-
-.bottom-view-toggle__button--active {
-  background: linear-gradient(180deg, #ffffff, #e4f1f8);
-  color: #1b5c83;
-  box-shadow: 0 10px 20px rgba(10, 31, 46, 0.18);
 }
 
 @media (max-width: 900px) {
@@ -552,7 +524,6 @@ h1 {
   }
 
   .weekday-row,
-  .week-grid,
   .month-grid {
     min-width: 0;
     gap: 6px;

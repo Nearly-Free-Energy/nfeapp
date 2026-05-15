@@ -1,5 +1,3 @@
-export type UsageCalendarView = 'week' | 'month';
-
 export type UsageUnit = 'kWh' | 'gallons' | 'therms';
 
 export type UsagePoint = {
@@ -22,6 +20,7 @@ export type UsageApiResponse = {
 export type UsagePeriodSummary = {
   totalUsage: number;
   averageDailyUsage: number;
+  currentUsageCashUgx: number;
   estimatedMonthlyBillUgx: number;
   unit: UsageUnit;
   highestUsageDay?: string;

@@ -235,11 +235,12 @@ describe('Electricity consumption dashboard', () => {
     }
 
     const controls = screen.getByLabelText('Bottom calendar controls');
-    expect(within(controls).getByRole('button', { name: 'Week' })).toBeInTheDocument();
-    expect(within(controls).getByRole('button', { name: 'Month' })).toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: 'Week' })).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
+    expect(within(controls).getByText('Mar 2026')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
-    expect(screen.getByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
-    expect(screen.getByText('Estimated monthly bill')).toBeInTheDocument();
+    expect(await screen.findByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
+    expect(screen.getByText('Estimated End of Month Bill')).toBeInTheDocument();
   });
 
   it('renders a service selector and reloads usage when switching services', async () => {
@@ -329,18 +330,16 @@ describe('Electricity consumption dashboard', () => {
     expect(apiMocks.getUsage).toHaveBeenLastCalledWith('test-token', 'service-b');
   });
 
-  it('switches to month view and shows a month label', async () => {
-    const user = userEvent.setup();
+  it('stays in month view and shows a month label', async () => {
     renderApp();
 
     await screen.findByLabelText('Monthly utility usage');
-    await user.click(screen.getByRole('button', { name: 'Month' }));
 
     expect(screen.getByLabelText('Monthly utility usage')).toBeInTheDocument();
     expect(screen.getByText('Mar 2026')).toBeInTheDocument();
   });
 
-  it('navigates periods forward from weekly view', async () => {
+  it('navigates periods forward by month', async () => {
     const user = userEvent.setup();
     renderApp();
 
@@ -372,8 +371,8 @@ describe('Electricity consumption dashboard', () => {
 
     const summary = screen.getByLabelText('Usage period summary');
     expect(within(summary).getByText('30 kWh')).toBeInTheDocument();
-    expect(within(summary).getByText('15 kWh')).toBeInTheDocument();
     expect(within(summary).getByText('UGX 24,087')).toBeInTheDocument();
+    expect(within(summary).getByText('UGX 370,429')).toBeInTheDocument();
   });
 
   it('renders the sign-in form when there is no session', async () => {
