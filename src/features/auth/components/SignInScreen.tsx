@@ -22,6 +22,7 @@ export function SignInScreen({
       <section className="dashboard-card dashboard-card--narrow">
         <div className="eyebrow">Customer energy portal</div>
         <div className="auth-card">
+          <img className="auth-card__logo" src="/assets/nfe-site-logo.png" alt="Nearly Free Energy" />
           <h1>Sign in to view your energy dashboard</h1>
           <p className="subtitle">
             Enter your email address and we&apos;ll send you a secure sign-in link. For now, the dashboard still uses
