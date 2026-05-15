@@ -219,10 +219,11 @@ describe('Electricity consumption dashboard', () => {
   it('renders the signed-in dashboard and keeps controls at the bottom', async () => {
     renderApp();
 
-    expect(await screen.findByText(/Signed in as customer@example.com for Customer Demo Account/i)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    expect(screen.queryByText(/Signed in as customer@example.com for Customer Demo Account/i)).not.toBeInTheDocument();
     expect(apiMocks.getMe).toHaveBeenCalledWith('test-token');
     expect(apiMocks.getUsage).toHaveBeenCalledWith('test-token', 'service-demo');
-    expect(screen.getByRole('heading', { name: 'Electricity Consumption' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Electricity Consumption' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Monthly utility usage')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Usage' })).toHaveClass('section-nav__link--active');
     expect(screen.getByRole('link', { name: 'Account' })).toBeInTheDocument();
@@ -238,7 +239,6 @@ describe('Electricity consumption dashboard', () => {
     expect(within(controls).queryByRole('button', { name: 'Week' })).not.toBeInTheDocument();
     expect(within(controls).queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
     expect(within(controls).getByText('Mar 2026')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(await screen.findByText(/Showing seeded platform demo data from the backend/i)).toBeInTheDocument();
     expect(screen.getByText('Estimated End of Month Bill')).toBeInTheDocument();
   });
