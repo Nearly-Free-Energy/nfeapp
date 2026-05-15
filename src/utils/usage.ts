@@ -1,5 +1,5 @@
 import type { UsageCalendarDay, UsagePeriodSummary, UsagePoint, UsageUnit } from '../models/usage';
-import { eachDayOfInterval, endOfMonth, endOfWeek, formatIsoDate, parseIsoDate, startOfMonth, startOfWeek } from './date';
+import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, formatIsoDate, parseIsoDate, startOfMonth, startOfWeek } from './date';
 
 const MONTHLY_SERVICE_CHARGE_UGX = 5320;
 const VAT_RATE = 0.18;
@@ -70,6 +70,11 @@ export function summarizePeriod(
   const unit = measuredDays[0]?.unit ?? days[0]?.unit ?? 'kWh';
   const totalUsage = measuredDays.reduce((sum, day) => sum + (day.usageValue ?? 0), 0);
   const averageDailyUsage = measuredDays.length > 0 ? totalUsage / measuredDays.length : 0;
+  const fullyMeasuredCutoff = addDays(today, -2);
+  const fullyMeasuredDays = measuredDays.filter((day) => day.date.getTime() <= fullyMeasuredCutoff.getTime());
+  const fullyMeasuredUsage = fullyMeasuredDays.reduce((sum, day) => sum + (day.usageValue ?? 0), 0);
+  const fullyMeasuredAverageDailyUsage =
+    fullyMeasuredDays.length > 0 ? fullyMeasuredUsage / fullyMeasuredDays.length : 0;
 
   const sorted = [...measuredDays].sort((left, right) => (left.usageValue ?? 0) - (right.usageValue ?? 0));
 
@@ -77,7 +82,7 @@ export function summarizePeriod(
     totalUsage: roundToTwo(totalUsage),
     averageDailyUsage: roundToTwo(averageDailyUsage),
     currentUsageCashUgx: calculateCurrentUsageCashUgx(usagePoints, today, billingMonthAnchor),
-    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(averageDailyUsage, billingMonthAnchor),
+    estimatedMonthlyBillUgx: calculateEstimatedMonthlyBillUgx(fullyMeasuredAverageDailyUsage, billingMonthAnchor),
     unit,
     lowestUsageDay: sorted[0]?.key,
     highestUsageDay: sorted[sorted.length - 1]?.key,

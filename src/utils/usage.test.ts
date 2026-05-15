@@ -78,6 +78,51 @@ describe('usage billing helpers', () => {
     expect(summary.estimatedMonthlyBillUgx).toBe(176350);
   });
 
+  it('uses only days at least 48 hours old for the monthly estimate pace', () => {
+    const summary = summarizePeriod(
+      [
+        {
+          date: new Date(2026, 2, 22),
+          key: '2026-03-22',
+          usageValue: 31,
+          unit: 'kWh',
+          isFuture: false,
+        },
+        {
+          date: new Date(2026, 2, 23),
+          key: '2026-03-23',
+          usageValue: 27,
+          unit: 'kWh',
+          isFuture: false,
+        },
+        {
+          date: new Date(2026, 2, 24),
+          key: '2026-03-24',
+          usageValue: 24,
+          unit: 'kWh',
+          isFuture: false,
+        },
+        {
+          date: new Date(2026, 2, 25),
+          key: '2026-03-25',
+          usageValue: 22,
+          unit: 'kWh',
+          isFuture: false,
+        },
+      ],
+      [
+        buildPoint('2026-03-22', 31),
+        buildPoint('2026-03-23', 27),
+        buildPoint('2026-03-24', 24),
+        buildPoint('2026-03-25', 22),
+      ],
+      new Date(2026, 2, 25),
+    );
+
+    expect(summary.currentUsageCashUgx).toBe(80371);
+    expect(summary.estimatedMonthlyBillUgx).toBe(771079);
+  });
+
   it('projects the monthly bill using the visible month length and current daily pace', () => {
     expect(calculateEstimatedMonthlyBillUgx(15, new Date(2026, 2, 15))).toBe(383814);
     expect(calculateEstimatedMonthlyBillUgx(15, new Date(2026, 3, 15))).toBe(370429);
